@@ -1,0 +1,31 @@
+{
+  "name": "@tessera/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "@lucide/svelte": "1.55.0",
+    "@tessera/engine": "workspace:*",
+    "@tessera/protocol": "workspace:*",
+    "dexie": "4.4.6",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "3.0.10",
+    "@sveltejs/kit": "2.70.3",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@types/bun": "1.4.2",
+    "@types/qrcode": "1.5.6",
+    "@vitejs/plugin-basic-ssl": "2.3.0",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3",
+    "vite": "8.3.4"
+  }
+}

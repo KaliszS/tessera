@@ -1,0 +1,16 @@
+[package]
+name = "protocol"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[features]
+ts = ["dep:ts-rs"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+hmac = "0.13"
+sha2 = "0.11"
+base64 = "0.22"
+ts-rs = { version = "12", optional = true }
