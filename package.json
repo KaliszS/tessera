@@ -1,0 +1,28 @@
+{
+  "name": "tessera",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tests/*"
+  ],
+  "scripts": {
+    "dev": "bun scripts/dev.ts",
+    "dev:phone": "HTTPS=1 bun scripts/dev.ts",
+    "dev:worker": "cd crates/relay-worker && wrangler dev --port 8787 --ip 127.0.0.1",
+    "dev:web": "bun run --cwd apps/web dev",
+    "build:worker": "cd crates/relay-worker && worker-build --release",
+    "deploy:worker": "cd crates/relay-worker && wrangler deploy",
+    "gen:protocol": "cargo test -p protocol --features ts",
+    "test": "bun run test:rust && bun run test:ts",
+    "test:rust": "cargo test -p protocol",
+    "test:ts": "bun test packages apps/web/src",
+    "test:conformance": "bun test tests/conformance",
+    "pack:build": "bun packages/engine/src/cli/pack-build.ts",
+    "pack:check": "bun packages/engine/src/cli/pack-check.ts"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  }
+}

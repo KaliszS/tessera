@@ -1,0 +1,16 @@
+/notes/
+
+/games/*
+!/games/README.md
+
+node_modules/
+target/
+dist/
+build/
+.svelte-kit/
+.wrangler/
+.env
+.env.*
+!.env.example
+*.tessera.json
+.DS_Store

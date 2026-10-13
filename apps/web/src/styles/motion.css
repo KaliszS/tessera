@@ -1,0 +1,54 @@
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(16px);
+  }
+}
+
+.tab-panel {
+  animation: enter-up 220ms var(--ease);
+}
+
+.enter {
+  animation: enter-up 220ms var(--ease) both;
+}
+
+.dialog[open] {
+  animation: sheet-up 140ms var(--ease);
+}
+
+.toast {
+  animation: enter-up 200ms var(--ease);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+  animation-timing-function: var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,20 @@
+name = "tessera-relay"
+main = "build/index.js"
+compatibility_date = "2026-09-01"
+
+[build]
+command = "worker-build --release"
+
+[durable_objects]
+bindings = [
+  { name = "ROOMS", class_name = "Room" },
+  { name = "REGISTRY", class_name = "Registry" },
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room", "Registry"]
+
+[vars]
+# Comma-separated list of allowed browser origins; empty allows any origin.
+ALLOWED_ORIGINS = ""
