@@ -10,8 +10,11 @@ export interface ShelfItem {
   dev: DevPack | null;
 }
 
-/** Installed packs first; dev packs whose exact version is not installed are shown as installable. */
-export function shelfItems(installed: PackRow[], dev: DevPack[]): ShelfItem[] {
+/** Newest installed version per game first; dev packs whose exact version is not installed are installable. */
+export function shelfItems(all: PackRow[], dev: DevPack[]): ShelfItem[] {
+  const latest = new Map<string, PackRow>();
+  for (const p of all) if ((latest.get(p.id)?.installedAt ?? -1) < p.installedAt) latest.set(p.id, p);
+  const installed = [...latest.values()];
   const hashes = new Set(installed.map((p) => p.hash));
   return [
     ...installed.map((p) => ({ key: p.hash, bundle: p.bundle, installed: p, dev: null })),
@@ -21,9 +24,11 @@ export function shelfItems(installed: PackRow[], dev: DevPack[]): ShelfItem[] {
   ];
 }
 
-/** Stable cover hue per game id. */
-export function hueOf(id: string): number {
+/** Box cover colour: the pack's own `ui.cover`, else a stable hue derived from the game id. */
+export function coverOf(id: string, bundle?: PackBundle | null): string {
+  const own = bundle?.game.ui?.cover;
+  if (own) return own;
   let h = 0;
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return h;
+  return `hsl(${h} 55% 42%)`;
 }

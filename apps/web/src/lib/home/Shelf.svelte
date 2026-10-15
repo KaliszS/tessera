@@ -2,7 +2,6 @@
   import Plus from "@lucide/svelte/icons/plus";
   import { onMount } from "svelte";
   import { db } from "../core/db";
-  import { go } from "../core/nav";
   import { describeError, fetchDevPacks, importPackFiles, installPack, listPacks } from "../core/packs";
   import { download } from "../core/util";
   import { i18n, t } from "../i18n/index.svelte";
@@ -31,11 +30,9 @@
     const row = item.installed;
     if (!row) return install(item);
     const action = await choose(i18n.packName(item.bundle), [
-      { id: "play", label: t("home.new_room_with") },
       { id: "export", label: t("home.export_pack") },
       { id: "remove", label: t("common.remove"), danger: true },
     ]);
-    if (action === "play") await go(`/new?pack=${row.hash}`);
     if (action === "export") download(`${row.id}.tessera.json`, JSON.stringify(row.bundle));
     if (action === "remove" && (await confirmAction(t("home.remove_pack"), undefined, t("common.remove"), true))) {
       await db.packs.delete(row.hash);
@@ -76,7 +73,7 @@
       <GameBox {item} onopen={() => open(item)} />
     {/each}
     <div class="shelf-item">
-      <button type="button" class="game-box add" aria-label={t("home.add_game")} title={t("home.add_game")} onclick={add}>
+      <button type="button" class="shelf-add" aria-label={t("home.add_game")} title={t("home.add_game")} onclick={add}>
         <Plus size={28} />
       </button>
     </div>

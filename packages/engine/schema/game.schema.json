@@ -13,6 +13,11 @@
     "version": {
       "type": "string"
     },
+    "edition": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
     "default_locale": {
       "default": "en",
       "type": "string"
@@ -430,6 +435,9 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "cover": {
+          "type": "string"
         }
       },
       "additionalProperties": false

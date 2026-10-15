@@ -74,6 +74,8 @@ export const GameDef = z.strictObject({
   format: z.literal(1),
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   version: z.string(),
+  /** Edition of the physical game, shown next to the name (e.g. 2 -> "2ed"). */
+  edition: z.number().int().positive().optional(),
   default_locale: z.string().default("en"),
   players: z.strictObject({ min: z.number().int().min(1), max: z.number().int() }),
   modules: z.array(z.strictObject({ id, default: z.boolean().default(false) })).default([]),
@@ -111,6 +113,8 @@ export const GameDef = z.strictObject({
       colors: z.record(z.string(), z.string()).default({}),
       /** Icon name -> short glyph, used for badges and {icon:name} placeholders. */
       icons: z.record(z.string(), z.string()).default({}),
+      /** Box cover colour (CSS); generated from the game id when absent. */
+      cover: z.string().optional(),
     })
     .optional(),
 });

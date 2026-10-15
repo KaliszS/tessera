@@ -2,7 +2,6 @@
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --radius-s: 8px;
   --radius: 14px;
   --radius-l: 20px;
   --radius-pill: 999px;
@@ -36,7 +35,9 @@
   --accent: #c2851c;
   --accent-strong: #9c6a12;
   --accent-soft: #f5e6c6;
-  --on-accent: #ffffff;
+  --primary-bg: #1d2129;
+  --primary-fg: #ffffff;
+  --primary-hover: #33384a;
   --danger: #c43d2f;
   --danger-soft: #f8e0dc;
   --ok: #2f8a57;
@@ -46,6 +47,7 @@
   --paper-line: rgb(120 90 40 / 0.12);
   --wood-1: #c99a5e;
   --wood-2: #9c6f3c;
+  --wood-top: #dcb27a;
   --shadow-1: 0 1px 2px rgb(60 40 10 / 0.06), 0 1px 1px rgb(60 40 10 / 0.04);
   --shadow-2: 0 10px 24px -12px rgb(60 40 10 / 0.25), 0 2px 6px rgb(60 40 10 / 0.06);
   color-scheme: light;
@@ -65,7 +67,9 @@
   --accent: #e8b04b;
   --accent-strong: #f3c870;
   --accent-soft: #3b2f15;
-  --on-accent: #1b1405;
+  --primary-bg: #ece7de;
+  --primary-fg: #141922;
+  --primary-hover: #ffffff;
   --danger: #ef6b5c;
   --danger-soft: #3d201c;
   --ok: #5cc68a;
@@ -75,6 +79,7 @@
   --paper-line: rgb(255 255 255 / 0.06);
   --wood-1: #6b4a2b;
   --wood-2: #45301c;
+  --wood-top: #84603a;
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35);
   --shadow-2: 0 12px 28px -14px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.3);
   color-scheme: dark;

@@ -8,15 +8,29 @@
   import { t } from "../i18n/index.svelte";
   import type { GameSession } from "../sync/session.svelte";
   import Dot from "../ui/Dot.svelte";
-  import { moveSeat, removeSeat, renameSeat } from "./seat-actions";
+  import SeatEditor from "./SeatEditor.svelte";
+  import { moveSeat, removeSeat, updateSeat } from "./seat-actions";
 
   let { session, seat, index }: { session: GameSession; seat: SeatState; index: number } = $props();
 
   const mine = $derived(seat.device === session.device);
   const status = $derived(mine ? t("room.me") : seat.device ? t("room.claimed") : t("room.free"));
   const last = $derived(session.state.seats.length - 1);
+  let editing = $state(false);
 </script>
 
+{#if editing}
+  <li>
+    <SeatEditor
+      {seat}
+      oncancel={() => (editing = false)}
+      onsave={(name, color) => {
+        editing = false;
+        void updateSeat(session, seat.id, name, color);
+      }}
+    />
+  </li>
+{:else}
 <li class="seat-row">
   <Dot color={seat.color} large />
   <div class="grow">
@@ -32,7 +46,7 @@
     <button type="button" class="btn btn-s" onclick={() => session.submit({ t: "seat.claim", seat: seat.id })}>{t("room.claim")}</button>
   {/if}
   {#if session.isHost || mine}
-    <button type="button" class="icon-btn" aria-label={t("room.rename")} onclick={() => renameSeat(session, seat.id, seat.name)}><Pencil size={18} /></button>
+    <button type="button" class="icon-btn" aria-label={t("room.rename")} onclick={() => (editing = true)}><Pencil size={18} /></button>
   {/if}
   {#if session.isHost}
     <button type="button" class="icon-btn" disabled={index === 0} aria-label={t("room.move_up")} onclick={() => moveSeat(session, session.state, seat.id, -1)}>
@@ -46,3 +60,4 @@
     </button>
   {/if}
 </li>
+{/if}

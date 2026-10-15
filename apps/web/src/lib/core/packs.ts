@@ -8,8 +8,12 @@ export interface DevPack {
   warnings: string[];
 }
 
+/** Installs a pack and drops older versions of the same game; rooms keep their own copy in the log. */
 export async function installPack(bundle: PackBundle, source: PackRow["source"]) {
-  await db.packs.put({ hash: bundle.hash, id: bundle.id, version: bundle.version, bundle, installedAt: Date.now(), source });
+  await db.transaction("rw", db.packs, async () => {
+    await db.packs.where("id").equals(bundle.id).delete();
+    await db.packs.put({ hash: bundle.hash, id: bundle.id, version: bundle.version, bundle, installedAt: Date.now(), source });
+  });
 }
 
 export async function listPacks(): Promise<PackRow[]> {

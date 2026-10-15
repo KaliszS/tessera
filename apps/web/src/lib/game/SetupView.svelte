@@ -3,6 +3,7 @@
   import { rowId } from "../core/pack-ui";
   import { t } from "../i18n/index.svelte";
   import type { GameSession } from "../sync/session.svelte";
+  import ModulesPanel from "./ModulesPanel.svelte";
   import SetupSection from "./SetupSection.svelte";
 
   let { session }: { session: GameSession } = $props();
@@ -29,6 +30,7 @@
 </script>
 
 <div class="stack tab-panel">
+  <ModulesPanel {session} />
   <p class="small muted">{t("setup.help", { players: st.seats.length })}</p>
   {#each sections as section (section.id)}
     <SetupSection {bundle} {section} catalog={catalogOf(section.id)} ondraw={() => draw(section)} />

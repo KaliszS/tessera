@@ -94,20 +94,8 @@ code,
   color: var(--ok);
 }
 
-.text-warn {
-  color: var(--warn);
-}
-
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
 }
