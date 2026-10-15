@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { type PackRow, getHostConfig } from "$lib/core/db";
-  import { hashParams, href } from "$lib/core/nav";
+  import { href } from "$lib/core/nav";
   import { listPacks } from "$lib/core/packs";
   import type { HostConfig } from "$lib/core/relay";
   import { t } from "$lib/i18n/index.svelte";
@@ -28,6 +28,6 @@
   {:else if packs.length === 0}
     <Notice>{t("new.no_packs")}</Notice>
   {:else}
-    <NewGameForm {host} {packs} initial={hashParams().get("pack")} />
+    <NewGameForm {host} {packs} />
   {/if}
 </Page>

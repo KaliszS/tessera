@@ -6,7 +6,7 @@
   import type { HostConfig } from "../core/relay";
   import { deleteRoom, forgetRoom } from "../core/rooms";
   import { t } from "../i18n/index.svelte";
-  import { choose, confirmAction } from "../ui/dialog.svelte";
+  import { confirmAction } from "../ui/dialog.svelte";
   import Empty from "../ui/Empty.svelte";
   import { toasts } from "../ui/toast.svelte";
   import RoomCard from "./RoomCard.svelte";
@@ -24,23 +24,20 @@
   // Only rooms on this device's own relay can be deleted from here.
   const canDelete = (r: RoomRow) => r.role === "host" && !!host && host.server === r.server;
 
-  async function menu(r: RoomRow) {
-    const action = await choose(r.label || r.id, [
-      { id: "forget", label: t("home.forget") },
-      ...(canDelete(r) ? [{ id: "delete", label: t("home.delete_all"), danger: true }] : []),
-    ]);
-    if (action === "forget" && (await confirmAction(t("home.forget_title"), t("home.forget_confirm"), t("common.forget")))) {
-      await forgetRoom(r.id);
+  async function forget(r: RoomRow) {
+    if (!(await confirmAction(t("home.forget_title"), t("home.forget_confirm"), t("common.forget")))) return;
+    await forgetRoom(r.id);
+    rooms = rooms.filter((x) => x.id !== r.id);
+  }
+
+  async function remove(r: RoomRow) {
+    if (!host) return;
+    if (!(await confirmAction(t("admin.delete_title"), t("admin.delete_confirm", { name: r.label || r.id }), t("common.delete"), true))) return;
+    try {
+      await deleteRoom(host, r.id);
       rooms = rooms.filter((x) => x.id !== r.id);
-    }
-    if (action === "delete" && host) {
-      if (!(await confirmAction(t("admin.delete_title"), t("admin.delete_confirm", { name: r.label || r.id }), t("common.delete"), true))) return;
-      try {
-        await deleteRoom(host, r.id);
-        rooms = rooms.filter((x) => x.id !== r.id);
-      } catch (e) {
-        toasts.show((e as Error).message, "error");
-      }
+    } catch (e) {
+      toasts.show((e as Error).message, "error");
     }
   }
 </script>
@@ -50,7 +47,13 @@
 {:else}
   <ul class="plain-list">
     {#each rooms as room (room.id)}
-      <RoomCard {room} bundle={room.packId ? (bundles.get(room.packId) ?? null) : null} onmenu={() => menu(room)} />
+      <RoomCard
+        {room}
+        bundle={room.packId ? (bundles.get(room.packId) ?? null) : null}
+        canDelete={canDelete(room)}
+        onforget={() => forget(room)}
+        ondelete={() => remove(room)}
+      />
     {/each}
   </ul>
 {/if}

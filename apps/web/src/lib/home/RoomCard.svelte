@@ -1,13 +1,20 @@
 <script lang="ts">
   import Crown from "@lucide/svelte/icons/crown";
-  import Ellipsis from "@lucide/svelte/icons/ellipsis";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
+  import Trash from "@lucide/svelte/icons/trash";
   import type { PackBundle } from "@tessera/engine";
   import type { RoomRow } from "../core/db";
   import { href } from "../core/nav";
   import { i18n, t } from "../i18n/index.svelte";
-  import { hueOf } from "./shelf";
+  import { coverOf } from "./shelf";
 
-  let { room, bundle, onmenu }: { room: RoomRow; bundle: PackBundle | null; onmenu: () => void } = $props();
+  let {
+    room,
+    bundle,
+    canDelete,
+    onforget,
+    ondelete,
+  }: { room: RoomRow; bundle: PackBundle | null; canDelete: boolean; onforget: () => void; ondelete: () => void } = $props();
 
   const MAX_AVATARS = 5;
   const seats = $derived(room.seats ?? []);
@@ -26,7 +33,7 @@
 
 <li class="room-card enter">
   <a class="room-card-main" href={href(`/room/${room.id}`)}>
-    <span class="mini-box" style:--hue={hueOf(room.packId ?? room.id)} title={gameName}>{(gameName || "?").charAt(0)}</span>
+    <span class="box3d mini-box" style:--cover={coverOf(room.packId ?? room.id, bundle)} title={gameName}>{(gameName || "?").charAt(0)}</span>
     <span class="room-card-body">
       <span class="room-card-title truncate">{room.label || gameName || room.id}</span>
       <span class="room-card-meta">
@@ -43,5 +50,14 @@
       </span>
     </span>
   </a>
-  <button type="button" class="icon-btn" aria-label={t("home.room_actions")} onclick={onmenu}><Ellipsis size={18} /></button>
+  <div class="room-card-actions">
+    <button type="button" class="icon-btn" aria-label={t("home.forget")} title={t("home.forget")} onclick={onforget}>
+      <EyeOff size={18} />
+    </button>
+    {#if canDelete}
+      <button type="button" class="icon-btn danger" aria-label={t("home.delete_all")} title={t("home.delete_all")} onclick={ondelete}>
+        <Trash size={18} />
+      </button>
+    {/if}
+  </div>
 </li>

@@ -5,8 +5,8 @@
   import { t } from "../i18n/index.svelte";
 </script>
 
-<a class="cta-tile" href={href("/new")}>
-  <span class="cta-token"><Plus size={24} strokeWidth={2.5} /></span>
-  <span class="cta-title">{t("home.new_room")}</span>
-  <span class="cta-arrow"><ChevronRight size={22} /></span>
+<a class="room-card new-room-card" href={href("/new")}>
+  <span class="mini-box add"><Plus size={22} /></span>
+  <span class="room-card-title grow">{t("home.new_room")}</span>
+  <span class="new-room-arrow"><ChevronRight size={20} /></span>
 </a>

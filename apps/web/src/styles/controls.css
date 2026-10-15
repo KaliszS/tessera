@@ -32,19 +32,20 @@
 }
 
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: var(--primary-bg);
+  border-color: var(--primary-bg);
+  color: var(--primary-fg);
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
 }
 
 .btn-danger {
   color: var(--danger);
-}
-
-.btn-ghost {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
 }
 
 .btn-block {
@@ -129,11 +130,6 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-2);
-}
-
-.field-hint {
-  font-size: 0.8rem;
-  color: var(--muted);
 }
 
 .check {

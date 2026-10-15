@@ -17,7 +17,7 @@
       {/each}
     </ul>
     {#if canAddSeat(session)}
-      <button type="button" class="btn" onclick={() => addSeat(session)}><UserPlus size={18} />{t("room.add_seat")}</button>
+      <button type="button" class="btn" onclick={() => addSeat(session, false)}><UserPlus size={18} />{t("room.add_seat")}</button>
     {/if}
   </Panel>
 </div>

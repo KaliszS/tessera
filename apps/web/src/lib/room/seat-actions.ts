@@ -3,15 +3,19 @@ import { randomId } from "../core/util";
 import { t } from "../i18n/index.svelte";
 import type { GameSession } from "../sync/session.svelte";
 import { ask, confirmAction } from "../ui/dialog.svelte";
+import { nextSeatColor } from "./seat-colors";
 
-export async function addSeat(session: GameSession) {
-  const name = (await ask(t("room.your_name")))?.trim();
-  if (name) await session.submit({ t: "seat.add", seat: randomId("g", 6).replace("_", ""), name: name.slice(0, 40) });
+/** Adds a seat; `mine` also claims it (guests' own seats are claimed automatically by the fold). */
+export async function addSeat(session: GameSession, mine: boolean) {
+  const name = (await ask(mine ? t("room.your_name") : t("room.player_name")))?.trim();
+  if (!name) return;
+  const seat = randomId("s", 6).replace("_", "");
+  await session.submit({ t: "seat.add", seat, name: name.slice(0, 40), color: nextSeatColor(session.state.seats) });
+  if (mine && session.isHost) await session.submit({ t: "seat.claim", seat });
 }
 
-export async function renameSeat(session: GameSession, seat: string, current: string) {
-  const name = (await ask(t("room.rename"), current))?.trim();
-  if (name && name !== current) await session.submit({ t: "seat.update", seat, name: name.slice(0, 40) });
+export async function updateSeat(session: GameSession, seat: string, name: string, color: string) {
+  await session.submit({ t: "seat.update", seat, name: name.trim().slice(0, 40), color });
 }
 
 export async function removeSeat(session: GameSession, seat: string, name: string) {
