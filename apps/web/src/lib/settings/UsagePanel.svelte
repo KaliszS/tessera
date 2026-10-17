@@ -42,7 +42,7 @@
       icon={ICONS[m.id] ?? Gauge}
       label={t(`admin.metric_short.${m.id}`)}
       title={t(`admin.metric.${m.id}`)}
-      value={m.used === null ? "—" : `${fmt(m.used)} / ${fmt(m.limit)}`}
+      value={m.used === null ? "-" : `${fmt(m.used)} / ${fmt(m.limit)}`}
       used={m.used}
       limit={m.limit}
     />

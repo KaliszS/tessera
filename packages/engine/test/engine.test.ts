@@ -6,6 +6,8 @@ import {
   type GameEvent,
   type LoggedEvent,
   type PackBundle,
+  assignRandom,
+  assignRandomEach,
   checkPack,
   computeSetup,
   evaluate,
@@ -15,6 +17,12 @@ import {
   matches,
   normalize,
   packTranslator,
+  packRef,
+  moduleTree,
+  widestPlayerRange,
+  parseSetupKey,
+  stepKey,
+  playerRange,
   parseBundle,
   parseCsv,
   revertedSeqs,
@@ -30,10 +38,11 @@ beforeAll(async () => {
   bundle = await loadPack(TEST_PACK);
 });
 
-function log(...events: Array<GameEvent | [string, GameEvent]>): LoggedEvent[] {
+/** Events by the host, or `[device, event]`, or `[device, event, seat]` for a sender whose token is bound to a seat. */
+function log(...events: Array<GameEvent | [string, GameEvent] | [string, GameEvent, string]>): LoggedEvent[] {
   return events.map((e, i) => {
-    const [dev, event] = Array.isArray(e) ? e : [HOST, e];
-    return { seq: i + 1, dev, ts: 1000 + i, event };
+    const [dev, event, seat] = Array.isArray(e) ? e : [HOST, e];
+    return { seq: i + 1, dev, ts: 1000 + i, event, seat: seat ?? null };
   });
 }
 
@@ -132,6 +141,11 @@ describe("fold", () => {
         [GUEST, { t: "modules.set", modules: ["merchants"] }],
         { t: "settings.set", allow_guest_seats: false },
         [GUEST, { t: "seat.add", seat: "c", name: "C" }],
+        ["dev_other01", { t: "seat.claim", seat: "b" }],
+        // The legacy flag proves nothing; a token bound to another seat neither.
+        ["dev_other01", { t: "seat.claim", seat: "b", link: true }],
+        ["dev_other01", { t: "seat.claim", seat: "b" }, "a"],
+        ["dev_other01", { t: "seat.claim", seat: "b" }, "b"],
         { t: "seat.claim", seat: "a" },
       ),
       bundle,
@@ -145,10 +159,15 @@ describe("fold", () => {
       "rejected",
       "applied",
       "rejected",
+      "rejected",
+      "rejected",
+      "rejected",
+      "applied",
       "applied",
     ]);
     expect(s.seats.map((x) => x.id)).toEqual(["a", "b"]);
     expect(s.seats[0].device).toBe(HOST);
+    expect(s.seats[1].device).toBe("dev_other01");
     expect(s.modules).toEqual([]);
   });
 
@@ -242,9 +261,81 @@ describe("setup", () => {
     const five = await computeSetup(bundle, 5, ["merchants"]);
     expect(five[0].items.find((i) => i.id === "sapphire_mine")?.copies).toBe(2);
     expect(five[1].items.map((i) => i.id)).toContain("caravan");
-    expect(five[2].random).toEqual({ count: 5, picked: null });
+    expect(five[2].random).toEqual({ count: 5, pool: ["miners", "weavers", "smiths"], picked: null });
     const rolled = await computeSetup(bundle, 2, [], { guilds: ["smiths", "miners"] });
     expect(rolled[2].items.map((i) => i.id)).toEqual(["miners", "smiths"]);
+    expect(rolled[3]).toMatchObject({ id: "purse", items: [], pieces: [{ icon: "gold", count: 2 }, { icon: "gem", count: 1 }] });
+  });
+
+  test("marks list what to take, even for a single mark", async () => {
+    const two = await computeSetup(bundle, 2, []);
+    expect(two[4]).toMatchObject({ id: "stack", marks: ["2+"], color: "#c0c0c0", list: false, area: "components" });
+    expect(two[3]).toMatchObject({ id: "purse", area: "player", count: null });
+    expect(two.find((s) => s.id === "tip")?.count).toBe(2);
+    expect(two.find((s) => s.id === "tip")?.help).toMatchObject({ extra: 0, players: 2, count: 2, mod_merchants: "off" });
+    expect((await computeSetup(bundle, 4, ["merchants"])).find((s) => s.id === "tip")?.help).toMatchObject({ extra: 1, mod_merchants: "on" });
+    expect(two[0].count).toBe(4);
+    expect(two[4].count).toBe(4);
+    expect(two[4].layout).toEqual([
+      { kind: "pile", color: "#c0c0c0", icon: null, symbol: null, label: "II", count: 2, marks: [], caption: null, outline: null, shape: null, ink: null, stripes: [], size: null, pattern: null, on: null, modules: [] },
+      { kind: "arrow" },
+      { kind: "spot", color: null, icon: null, symbol: null, label: null, count: null, marks: [], caption: null, outline: null, shape: null, ink: null, stripes: [], size: null, pattern: null, on: null, modules: [] },
+      { kind: "pieces", color: null, icon: "gold", symbol: null, label: null, count: null, marks: [], caption: null, outline: null, shape: null, ink: null, stripes: [], size: null, pattern: null, on: null, modules: [] },
+    ]);
+    expect((await computeSetup(bundle, 4, []))[4].marks).toEqual(["2+", "3+", "4+"]);
+  });
+
+  test("modules gate sections and pictures", async () => {
+    const base = await computeSetup(bundle, 3, []);
+    expect(base.map((s) => s.id)).not.toContain("hall");
+    expect(base[4].layout).toHaveLength(4);
+    const all = await computeSetup(bundle, 3, ["merchants", "guildhall"]);
+    expect(all.find((s) => s.id === "hall")?.count).toBe(3);
+    expect(all[4].layout.at(-1)).toMatchObject({ kind: "pieces", modules: ["merchants"] });
+    expect(all[4].layout).toHaveLength(5);
+  });
+
+  test("a merge shows one pile alone, or sources, an arrow and their total", async () => {
+    const one = (await computeSetup(bundle, 3, [])).find((s) => s.id === "pool")!;
+    expect(one.layout).toEqual([{ kind: "pile", color: "red", icon: null, symbol: null, label: null, count: 4, marks: ["4+"], caption: null, outline: null, shape: null, ink: null, stripes: [], size: null, pattern: null, on: null, modules: [] }]);
+    expect([one.count, one.help.merged]).toEqual([4, 1]);
+    const two = (await computeSetup(bundle, 3, ["merchants"])).find((s) => s.id === "pool")!;
+    expect(two.layout.map((i) => (i.kind === "arrow" ? "→" : i.count))).toEqual([4, 2, "→", 6]);
+    expect([two.count, two.help.merged]).toEqual([6, 2]);
+  });
+
+  test("a shaped item is a token with its label", async () => {
+    const all = await computeSetup(bundle, 3, []);
+    expect(all.find((s) => s.id === "medals")?.layout[0]).toMatchObject({ kind: "token", shape: "pentagon", label: "-1", color: "blue", caption: "loss" });
+    const group = all.find((s) => s.id === "medals")?.layout[1];
+    expect(group).toMatchObject({ kind: "group", caption: "war" });
+    expect(group?.kind === "group" && group.items.map((i) => i.label)).toEqual(["+"]);
+    const any = (await computeSetup(bundle, 3, ["guildhall", "merchants"])).find((s) => s.id === "medals")?.layout[2];
+    expect(any).toMatchObject({ kind: "token", label: "?", modules: ["merchants", "guildhall"] });
+    expect((await computeSetup(bundle, 3, [])).find((s) => s.id === "medals")?.layout).toHaveLength(2);
+    const card = (await computeSetup(bundle, 3, [])).find((s) => s.id === "tableau")?.layout[0];
+    expect(card).toMatchObject({ kind: "pile", count: 1, on: { kind: "token", shape: "figure", count: 2 } });
+  });
+
+  test("a module switches off when the module it requires does", () => {
+    const s = fold(log(init(), { t: "modules.set", modules: ["guildhall"] }), bundle);
+    expect(s.modules).toEqual([]);
+    const ok = fold(log(init(), { t: "modules.set", modules: ["merchants", "guildhall"] }), bundle);
+    expect(ok.modules).toEqual(["merchants", "guildhall", "stall"]);
+    const part = fold(log(init(), { t: "modules.set", modules: ["stall"] }), bundle);
+    expect(part.modules).toEqual(["stall"]);
+  });
+
+  test("round sections bind $round, honour when and key their state by round", async () => {
+    const first = await computeSetup(bundle, 3, [], {}, 1);
+    expect(first.map((s) => s.id)).toEqual(["1:deck"]);
+    expect(first[0].items.every((i) => i.row.round === 1)).toBe(true);
+    const second = await computeSetup(bundle, 3, [], { "2:bonus": ["weavers", "miners"] }, 2);
+    expect(second.map((s) => [s.id, s.section])).toEqual([["2:deck", "deck"], ["2:bonus", "bonus"]]);
+    expect(second[1].random).toMatchObject({ count: 2, picked: ["weavers", "miners"] });
+    expect(parseSetupKey("2:bonus")).toEqual({ step: null, round: 2, section: "bonus" });
+    expect(parseSetupKey("purse")).toEqual({ step: null, round: null, section: "purse" });
+    expect(parseSetupKey(stepKey("players"))).toMatchObject({ step: "players", round: null });
   });
 });
 
@@ -276,5 +367,205 @@ describe("csv", () => {
       ["x, y", 'say "hi"'],
       ["1", "2"],
     ]);
+  });
+});
+
+describe("lobby", () => {
+  test("phase starts in lobby and only the host may change it", () => {
+    const s = fold(log(init(), [GUEST, { t: "phase.set", phase: "playing" }], { t: "setup.check", section: "round1", done: true }), bundle);
+    expect(s.phase).toBe("lobby");
+    expect(s.setupChecked).toEqual({ round1: true });
+    expect(fold(log(init(), ...seats("a", "b"), { t: "phase.set", phase: "playing" }), bundle).phase).toBe("playing");
+  });
+
+  test("random assignment keeps a column distinct", () => {
+    const rows = [
+      { id: "a1", w: "a" },
+      { id: "a2", w: "a" },
+      { id: "b1", w: "b" },
+      { id: "c1", w: "c" },
+    ];
+    for (let i = 0; i < 20; i++) {
+      const picked = assignRandom(rows, 3, "w");
+      expect(new Set(picked.map((r) => r.w)).size).toBe(3);
+    }
+    expect(assignRandom(rows, 9, "w")).toHaveLength(3);
+    const each = assignRandomEach([rows.filter((r) => r.w === "a"), rows, rows], "w");
+    expect(each[0]?.w).toBe("a");
+    expect(new Set(each.map((r) => r?.w)).size).toBe(3);
+  });
+});
+
+describe("assignments", () => {
+  test("only the host or the seat owner may set a ref field", () => {
+    const s = fold(
+      log(
+        init(),
+        ...seats("a", "b"),
+        [GUEST, { t: "seat.claim", seat: "a" }],
+        [GUEST, { t: "field.set", seat: "a", field: "guild", value: "miners" }],
+        [GUEST, { t: "field.set", seat: "b", field: "guild", value: "smiths" }],
+        { t: "field.set", seat: "b", field: "guild", value: "weavers" },
+      ),
+      bundle,
+    );
+    expect(s.log.slice(-3).map((l) => l.status)).toEqual(["applied", "rejected", "applied"]);
+    expect(s.seats.map((x) => x.fields.guild)).toEqual(["miners", "weavers"]);
+  });
+
+  test("host can take assignments away from players entirely", () => {
+    const s = fold(
+      log(
+        init(),
+        ...seats("a"),
+        [GUEST, { t: "seat.claim", seat: "a" }],
+        { t: "settings.set", host_assigns: true },
+        [GUEST, { t: "field.set", seat: "a", field: "guild", value: "miners" }],
+        { t: "field.set", seat: "a", field: "guild", value: "smiths" },
+      ),
+      bundle,
+    );
+    expect(s.log.slice(-2).map((l) => l.status)).toEqual(["rejected", "applied"]);
+    expect(s.seats[0].fields.guild).toBe("smiths");
+  });
+});
+
+describe("members", () => {
+  test("guests introduce themselves and the host assigns them to a seat", () => {
+    const s = fold(
+      log(
+        init(),
+        ...seats("a"),
+        [GUEST, { t: "member.hello", name: "Ola" }],
+        [GUEST, { t: "seat.assign", seat: "a", device: GUEST }],
+        { t: "seat.assign", seat: "a", device: GUEST },
+      ),
+      bundle,
+    );
+    expect(s.members).toEqual({ [GUEST]: { name: "Ola" } });
+    expect(s.log.map((l) => l.status).slice(-2)).toEqual(["rejected", "applied"]);
+    expect(s.seats[0].device).toBe(GUEST);
+    expect(s.seats[0].name).toBe("Ola");
+  });
+
+  test("host variants limit a player's choices", () => {
+    const s = fold(
+      log(
+        init(),
+        ...seats("a"),
+        [GUEST, { t: "seat.claim", seat: "a" }],
+        [GUEST, { t: "variants.set", field: "guild", column: "tier", values: ["gold"] }],
+        { t: "variants.set", field: "guild", column: "tier", values: ["gold"] },
+        { t: "variants.set", field: "guild", column: "tier", values: ["nope"] },
+        [GUEST, { t: "field.set", seat: "a", field: "guild", value: "weavers" }],
+        [GUEST, { t: "field.set", seat: "a", field: "guild", value: "smiths" }],
+      ),
+      bundle,
+    );
+    expect(s.log.slice(-5).map((l) => l.status)).toEqual(["rejected", "applied", "rejected", "rejected", "applied"]);
+    expect(s.variants).toEqual({ guild: { tier: ["gold"] } });
+    expect(s.seats[0].fields.guild).toBe("smiths");
+    const reset = fold(log(init(), { t: "variants.set", field: "guild", column: "tier", values: ["silver", "gold"] }), bundle);
+    expect(reset.variants).toEqual({ guild: {} });
+  });
+
+  test("the host moves the room to another version of its pack", () => {
+    const ref = { id: bundle.id, version: "9.9.9", hash: "abc" };
+    const s = fold(
+      log(init(), [GUEST, { t: "pack.set", pack: ref }], { t: "pack.set", pack: { ...ref, id: "other" } }, { t: "pack.set", pack: ref }),
+      bundle,
+    );
+    expect(s.log.slice(-3).map((l) => l.status)).toEqual(["rejected", "rejected", "applied"]);
+    expect(s.pack).toEqual(ref);
+  });
+
+  test("expansions widen the player range and tracks start at their minimum", () => {
+    expect(playerRange(bundle.game, [])).toEqual({ min: 2, max: 5 });
+    expect(playerRange(bundle.game, ["merchants"])).toEqual({ min: 2, max: 6 });
+    const six = ["a", "b", "c", "d", "e", "f"];
+    const base = fold(log(init(), ...seats(...six)), bundle);
+    expect(base.seats).toHaveLength(5);
+    expect(base.tracks.round).toBe(1);
+    const wide = fold(log(init(), { t: "modules.set", modules: ["merchants"] }, ...seats(...six)), bundle);
+    expect(wide.seats).toHaveLength(6);
+    const shrunk = fold(log(init(), { t: "modules.set", modules: ["merchants"] }, ...seats(...six), { t: "modules.set", modules: [] }, { t: "phase.set", phase: "playing" }), bundle);
+    expect(shrunk.log.at(-1)?.reason).toBe("too many players");
+  });
+
+  test("fields.set applies every change or none", () => {
+    const ok = fold(
+      log(init(), ...seats("a", "b"), { t: "fields.set", changes: [{ seat: "a", field: "guild", value: "miners" }, { seat: "b", field: "guild", value: "smiths" }] }),
+      bundle,
+    );
+    expect(ok.seats.map((x) => x.fields.guild)).toEqual(["miners", "smiths"]);
+    const bad = fold(
+      log(init(), ...seats("a", "b"), { t: "fields.set", changes: [{ seat: "a", field: "guild", value: "miners" }, { seat: "b", field: "guild", value: "nope" }] }),
+      bundle,
+    );
+    expect(bad.log.at(-1)?.status).toBe("rejected");
+    expect(bad.seats[0].fields.guild).not.toBe("miners");
+  });
+
+  test("only the host confirms lobby steps, while anyone ticks off setup tasks", () => {
+    const s = fold(
+      log(init(), [GUEST, { t: "setup.check", section: stepKey("players"), done: true }], [GUEST, { t: "setup.check", section: "round1", done: true }]),
+      bundle,
+    );
+    expect(s.log.slice(-2).map((l) => l.status)).toEqual(["rejected", "applied"]);
+  });
+
+  test("the room's pack follows the host's pack.set unless it was undone", () => {
+    const ref = { id: bundle.id, version: "9.9.9", hash: "abc" };
+    const events = log(init(), { t: "pack.set", pack: ref });
+    expect(packRef(events)).toEqual(ref);
+    const undone = log(init(), { t: "pack.set", pack: ref }, { t: "undo", target: 2 });
+    expect(packRef(undone)?.hash).not.toBe("abc");
+  });
+
+  test("modules form a tree of variants and parts", () => {
+    const tree = moduleTree(bundle.game);
+    expect(tree.map((n) => [n.def.id, n.variants.map((v) => v.id), n.parts.map((p) => p.id)])).toEqual([["merchants", ["guildhall"], ["stall"]]]);
+    expect(widestPlayerRange(bundle.game)).toEqual({ min: 2, max: 6 });
+  });
+
+  test("the game cannot start below the minimum player count", () => {
+    const s = fold(log(init(), ...seats("a"), { t: "phase.set", phase: "playing" }, ...seats("b"), { t: "phase.set", phase: "playing" }), bundle);
+    expect(s.log.map((l) => l.status).filter((x, i) => s.log[i].event.t === "phase.set")).toEqual(["rejected", "applied"]);
+    expect(s.phase).toBe("playing");
+  });
+
+  test("unnamed seats take the name of the player who joins them", () => {
+    const s = fold(
+      log(
+        init(),
+        { t: "seat.add", seat: "a", name: "" },
+        { t: "seat.add", seat: "b", name: "" },
+        [GUEST, { t: "seat.claim", seat: "a" }, "a"],
+        [GUEST, { t: "member.hello", name: "Ola" }],
+        ["dev_other01", { t: "member.hello", name: "Jan" }],
+        ["dev_other01", { t: "seat.claim", seat: "b" }, "b"],
+      ),
+      bundle,
+    );
+    expect(s.seats.map((x) => x.name)).toEqual(["Ola", "Jan"]);
+    expect(s.members[GUEST].name).toBe("Ola");
+  });
+
+  test("a seated player and their seat share one name", () => {
+    const s = fold(
+      log(
+        init(),
+        ...seats("a", "b"),
+        [GUEST, { t: "member.hello", name: "Ola" }],
+        [GUEST, { t: "seat.claim", seat: "a" }, "a"],
+        [GUEST, { t: "seat.update", seat: "a", name: "Olka" }],
+        [GUEST, { t: "seat.release", seat: "a" }],
+        ["dev_other01", { t: "member.hello", name: "Jan" }],
+        ["dev_other01", { t: "seat.claim", seat: "b" }],
+      ),
+      bundle,
+    );
+    expect(s.members[GUEST].name).toBe("Olka");
+    expect(s.seats.map((x) => x.name)).toEqual(["Olka", "Jan"]);
   });
 });

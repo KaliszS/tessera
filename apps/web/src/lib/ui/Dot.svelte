@@ -1,5 +1,5 @@
 <script lang="ts">
-  let { color, large = false }: { color: string | null | undefined; large?: boolean } = $props();
+  let { color }: { color: string | null | undefined } = $props();
 </script>
 
-<span class="dot" class:dot-l={large} style:background={color ?? "var(--border-strong)"}></span>
+<span class="dot" style:background={color ?? "var(--border-strong)"}></span>

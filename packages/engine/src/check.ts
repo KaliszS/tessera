@@ -1,5 +1,6 @@
 import { syntaxError } from "./expr";
 import { flattenKeys, lookup } from "./i18n";
+import { moduleRefIds } from "./pack";
 import type { PackBundle } from "./schema";
 
 export interface CheckResult {
@@ -48,6 +49,13 @@ export function checkPack(bundle: PackBundle): CheckResult {
     expr(`seat.fields.${k}.filter`, f.filter);
     if (f.type === "ref" && !f.catalog) errors.push(`seat.fields.${k}: ref needs a catalog`);
     if (f.type === "enum" && !f.values?.length) errors.push(`seat.fields.${k}: enum needs values`);
+    if (f.unique_by && f.catalog && !(bundle.catalogs[f.catalog] ?? []).some((r) => f.unique_by! in r))
+      errors.push(`seat.fields.${k}.unique_by: no column "${f.unique_by}" in ${f.catalog}`);
+    for (const col of f.variants ?? []) {
+      if (f.type !== "ref" || !f.catalog) errors.push(`seat.fields.${k}.variants: only ref fields have variants`);
+      else if (!(bundle.catalogs[f.catalog] ?? []).some((r) => col in r))
+        errors.push(`seat.fields.${k}.variants: no column "${col}" in ${f.catalog}`);
+    }
   }
   for (const [k, c] of Object.entries(g.seat.counters)) {
     claim(k, "counter");
@@ -72,17 +80,46 @@ export function checkPack(bundle: PackBundle): CheckResult {
       expr(`effects.${cat}.${item}`, eff.points);
     }
   }
+  for (const m of g.modules) {
+    for (const r of m.requires ?? []) if (!moduleIds.has(r)) errors.push(`modules.${m.id}.requires: unknown module "${r}"`);
+    if (m.icon?.startsWith("svg:")) warnings.push(`modules.${m.id}.icon: name a ui.icons entry instead of an inline svg`);
+  }
   for (const c of g.scoring?.categories ?? []) {
     expr(`scoring.${c.id}`, c.expr);
     if (c.module && !moduleIds.has(c.module)) errors.push(`scoring.${c.id}: unknown module "${c.module}"`);
     if (!c.expr && !c.manual && !Object.values(g.effects).some((t) => Object.values(t).some((e) => e.category === c.id)))
       warnings.push(`scoring.${c.id}: no expr, not manual and no effects feed it`);
   }
-  for (const s of g.setup?.sections ?? []) {
-    catalog(`setup.${s.id}`, s.catalog);
-    expr(`setup.${s.id}.filter`, s.filter);
-    expr(`setup.${s.id}.copies`, s.copies);
-    expr(`setup.${s.id}.pick_random`, s.pick_random);
+  const rounds = g.setup?.rounds;
+  if (rounds && !g.tracks[rounds.track]) errors.push(`setup.rounds.track: unknown track "${rounds.track}"`);
+  for (const [where, list] of [["setup", g.setup?.sections ?? []], ["setup.rounds", rounds?.sections ?? []]] as const) {
+    for (const s of list) {
+      catalog(`${where}.${s.id}`, s.catalog);
+      expr(`${where}.${s.id}.filter`, s.filter);
+      expr(`${where}.${s.id}.copies`, s.copies);
+      expr(`${where}.${s.id}.pick_random`, s.pick_random);
+      expr(`${where}.${s.id}.when`, s.when);
+      expr(`${where}.${s.id}.marks`, s.marks);
+      for (const v of Object.values(s.params ?? {})) if (typeof v === "string") expr(`${where}.${s.id}.params`, v);
+      if (typeof s.count === "string") expr(`${where}.${s.id}.count`, s.count);
+      const piles = (s.layout ?? []).flatMap((item) =>
+        item === "arrow" ? [] : "merge" in item ? [...item.merge, item.into] : "group" in item ? item.group : [item],
+      ).flatMap((p) => (p.on ? [p, p.on] : [p]));
+      for (const item of piles) {
+        if (typeof item.count === "string") expr(`${where}.${s.id}.layout`, item.count);
+        expr(`${where}.${s.id}.layout`, item.marks);
+        for (const glyph of [item.icon, item.symbol])
+          if (glyph && !g.ui?.icons[glyph]) warnings.push(`${where}.${s.id}.layout: no ui.icons.${glyph}`);
+        for (const m of moduleRefIds(item.module))
+          if (!moduleIds.has(m)) errors.push(`${where}.${s.id}.layout: unknown module "${m}"`);
+      }
+      for (const m of moduleRefIds(s.module))
+        if (!moduleIds.has(m)) errors.push(`${where}.${s.id}: unknown module "${m}"`);
+      for (const [icon, n] of Object.entries(s.per_player ?? {})) {
+        if (typeof n === "string") expr(`${where}.${s.id}.per_player.${icon}`, n);
+        if (!g.ui?.icons[icon]) warnings.push(`${where}.${s.id}.per_player: no ui.icons.${icon}, the name is shown instead`);
+      }
+    }
   }
 
   const def = bundle.locales[g.default_locale] ?? {};

@@ -9,6 +9,24 @@ html {
   background: var(--bg);
 }
 
+.glyph-svg {
+  width: 1.3em;
+  height: 1.3em;
+  fill: currentColor;
+  vertical-align: -0.2em;
+}
+
+/* Buttons start bare; each kind (.btn, .chip, .icon-btn, .toggle-item…) draws its own look. */
+button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 body {
   margin: 0;
   min-height: 100dvh;

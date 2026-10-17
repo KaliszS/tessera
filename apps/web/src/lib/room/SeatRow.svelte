@@ -1,26 +1,42 @@
 <script lang="ts">
-  import ArrowDown from "@lucide/svelte/icons/arrow-down";
-  import ArrowUp from "@lucide/svelte/icons/arrow-up";
+  import GripVertical from "@lucide/svelte/icons/grip-vertical";
+  import Link from "@lucide/svelte/icons/link";
   import LogOut from "@lucide/svelte/icons/log-out";
   import Pencil from "@lucide/svelte/icons/pencil";
   import Trash from "@lucide/svelte/icons/trash";
   import type { SeatState } from "@tessera/engine";
   import { t } from "../i18n/index.svelte";
   import type { GameSession } from "../sync/session.svelte";
-  import Dot from "../ui/Dot.svelte";
+  import Avatar from "../ui/Avatar.svelte";
   import SeatEditor from "./SeatEditor.svelte";
-  import { moveSeat, removeSeat, updateSeat } from "./seat-actions";
+  import { removeSeat, updateSeat } from "./seat-actions";
+  import { seatInitial, seatLabel } from "./seat-label";
 
-  let { session, seat, index }: { session: GameSession; seat: SeatState; index: number } = $props();
+  let {
+    session,
+    seat,
+    editing = $bindable(false),
+    dragging = false,
+    oninvite,
+    ongrab,
+    onkeymove,
+  }: {
+    session: GameSession;
+    seat: SeatState;
+    editing?: boolean;
+    dragging?: boolean;
+    oninvite?: () => void;
+    ongrab?: (e: PointerEvent) => void;
+    onkeymove?: (dir: -1 | 1) => void;
+  } = $props();
 
   const mine = $derived(seat.device === session.device);
-  const status = $derived(mine ? t("room.me") : seat.device ? t("room.claimed") : t("room.free"));
-  const last = $derived(session.state.seats.length - 1);
-  let editing = $state(false);
+  const label = $derived(seatLabel(session.state, seat));
+  const free = $derived(!seat.device);
 </script>
 
 {#if editing}
-  <li>
+  <li class="seat-card editing" data-seat={seat.id}>
     <SeatEditor
       {seat}
       oncancel={() => (editing = false)}
@@ -31,33 +47,51 @@
     />
   </li>
 {:else}
-<li class="seat-row">
-  <Dot color={seat.color} large />
-  <div class="grow">
-    <strong class="truncate">{seat.name}</strong>
-    <div class="tiny muted">{status}</div>
-  </div>
-  <span class="seat-total">{session.evaluation?.seats[seat.id]?.total ?? 0}</span>
-  {#if mine}
-    <button type="button" class="icon-btn" aria-label={t("room.release")} title={t("room.release")} onclick={() => session.submit({ t: "seat.release", seat: seat.id })}>
-      <LogOut size={18} />
-    </button>
-  {:else if !seat.device}
-    <button type="button" class="btn btn-s" onclick={() => session.submit({ t: "seat.claim", seat: seat.id })}>{t("room.claim")}</button>
-  {/if}
-  {#if session.isHost || mine}
-    <button type="button" class="icon-btn" aria-label={t("room.rename")} onclick={() => (editing = true)}><Pencil size={18} /></button>
-  {/if}
-  {#if session.isHost}
-    <button type="button" class="icon-btn" disabled={index === 0} aria-label={t("room.move_up")} onclick={() => moveSeat(session, session.state, seat.id, -1)}>
-      <ArrowUp size={18} />
-    </button>
-    <button type="button" class="icon-btn" disabled={index === last} aria-label={t("room.move_down")} onclick={() => moveSeat(session, session.state, seat.id, 1)}>
-      <ArrowDown size={18} />
-    </button>
-    <button type="button" class="icon-btn danger" aria-label={t("common.remove")} onclick={() => removeSeat(session, seat.id, seat.name)}>
-      <Trash size={18} />
-    </button>
-  {/if}
-</li>
+  <li class="seat-card" class:free class:mine class:dragging data-seat={seat.id}>
+    {#if session.isHost}
+      <button
+        type="button"
+        class="drag-handle"
+        aria-label={t("room.reorder")}
+        title={t("room.reorder")}
+        onpointerdown={ongrab}
+        onkeydown={(e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            onkeymove?.(e.key === "ArrowUp" ? -1 : 1);
+          }
+        }}
+      >
+        <GripVertical size={18} />
+      </button>
+    {/if}
+    <Avatar name={seatInitial(session.state, seat)} color={seat.color} {mine} empty={free} />
+    <div class="seat-body">
+      <strong class="truncate" class:muted={!seat.name}>{label}</strong>
+      {#if mine}
+        <span class="seat-status me">{t("room.me")}</span>
+      {:else if free && !session.isHost && !session.state.allowGuestSeats}
+        <span class="seat-status">{t("room.free")}</span>
+      {:else if free}
+        <button type="button" class="seat-claim" onclick={() => session.submit({ t: "seat.claim", seat: seat.id })}>{t("room.claim")}</button>
+      {:else}
+        <span class="seat-status">{t("room.claimed")}</span>
+      {/if}
+    </div>
+    {#if mine}
+      <button type="button" class="icon-btn" aria-label={t("room.release")} title={t("room.release")} onclick={() => session.submit({ t: "seat.release", seat: seat.id })}>
+        <LogOut size={18} />
+      </button>
+    {:else if session.isHost && oninvite}
+      <button type="button" class="icon-btn" aria-label={t("invite.seat_title")} title={t("invite.seat_title")} onclick={oninvite}><Link size={18} /></button>
+    {/if}
+    {#if session.isHost || mine}
+      <button type="button" class="icon-btn" aria-label={t("room.rename")} title={t("room.rename")} onclick={() => (editing = true)}><Pencil size={18} /></button>
+    {/if}
+    {#if session.isHost}
+      <button type="button" class="icon-btn danger" aria-label={t("common.remove")} title={t("common.remove")} onclick={() => removeSeat(session, seat.id, label)}>
+        <Trash size={18} />
+      </button>
+    {/if}
+  </li>
 {/if}

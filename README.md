@@ -76,6 +76,7 @@ The workflow passes the Pages sub-path (`/<repo>`) as `BASE_PATH`; for another h
 - The relay is the source of truth for ordering only. It assigns `seq`, stores opaque ciphertext and broadcasts it, and it knows nothing about games.
 - Clients encrypt events with AES-GCM. The room key travels only in the invite link fragment (`#/join?...&k=`), which browsers never send to servers.
 - `state = fold(events)`. Undo is a compensating event, and every device computes the same state.
+- The relay stamps each event with the seat its sender's token is bound to (taken from the signed token), so a seat invite is honoured without trusting the client.
 - `append` carries `base` (the last `seq` the client saw). A stale base is rejected. The client catches up, re-checks the event against the new state, then resends it or drops it with a notice.
 - Locks (`lock` / `unlock`) let one device run a multi-step procedure while the others' appends are rejected. The host can force a release.
 - Mobile sockets die on screen lock. The client reconnects on wake or when back online, then asks `since(last_seq)`.

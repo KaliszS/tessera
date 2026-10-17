@@ -1,5 +1,6 @@
 <script lang="ts">
   import Users from "@lucide/svelte/icons/users";
+  import { widestPlayerRange } from "@tessera/engine";
   import type { PackRow } from "../core/db";
   import BoxCover from "../home/BoxCover.svelte";
   import { t } from "../i18n/index.svelte";
@@ -10,10 +11,10 @@
 <div class="shelf" role="group" aria-label={t("new.game")}>
   <div class="shelf-row">
     {#each packs as p (p.hash)}
-      {@const players = p.bundle.game.players}
+      {@const players = widestPlayerRange(p.bundle.game)}
       <div class="shelf-item">
         <BoxCover bundle={p.bundle} {disabled} onclick={() => onpick(p)}>
-          {#snippet meta()}<Users size={12} />{players.min}–{players.max}{/snippet}
+          {#snippet meta()}<Users size={12} />{players.min}-{players.max}{/snippet}
         </BoxCover>
       </div>
     {/each}

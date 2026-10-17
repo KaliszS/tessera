@@ -5,6 +5,7 @@
   import { askNumber } from "../ui/dialog.svelte";
   import Dot from "../ui/Dot.svelte";
   import Notice from "../ui/Notice.svelte";
+  import { seatLabel } from "../room/seat-label";
 
   let { session }: { session: GameSession } = $props();
 
@@ -33,7 +34,7 @@
           <tr>
             <th class="cat"></th>
             {#each st.seats as s (s.id)}
-              <th><span class="row-nowrap"><Dot color={s.color} />{s.name}</span></th>
+              <th><span class="row-nowrap"><Dot color={s.color} />{seatLabel(st, s)}</span></th>
             {/each}
           </tr>
         </thead>

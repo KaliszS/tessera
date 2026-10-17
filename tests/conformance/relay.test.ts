@@ -160,6 +160,24 @@ describe("event log", () => {
     expect(await guest.next("welcome")).toMatchObject({ role: "player", seat: "p2" });
   });
 
+  test("events carry the seat of the sender's token, live and when replayed", async () => {
+    const { room, host_token } = await createRoom();
+    const host = await connect(room, host_token);
+    await host.next("welcome");
+    const guest = await connect(room, await mint(room, { role: "player", seat: "p2" }));
+    await guest.next("welcome");
+
+    guest.send({ type: "append", id: uid("evt"), base: null, data: "Z3Vlc3Q" });
+    expect((await host.next("event")).event).toMatchObject({ seq: 1, seat: "p2" });
+    await guest.next("event");
+    host.send({ type: "append", id: uid("evt"), base: 1, data: "aG9zdA" });
+    expect((await guest.next("event")).event).toMatchObject({ seq: 2, seat: null });
+
+    host.send({ type: "since", after: 0 });
+    const page = await host.next("events");
+    expect(page.events.map((e: { seat: string | null }) => e.seat)).toEqual(["p2", null]);
+  });
+
   test("append assigns increasing seq, acks the sender and broadcasts to all", async () => {
     const { room, host_token, player_token } = await createRoom();
     const a = await connect(room, host_token);

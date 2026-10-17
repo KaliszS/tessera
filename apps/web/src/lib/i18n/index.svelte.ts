@@ -1,4 +1,4 @@
-import { type PackBundle, type Params, Translator, packTranslator } from "@tessera/engine";
+import { type PackBundle, type PackTranslator, type Params, Translator, packTranslator } from "@tessera/engine";
 import { kvGet, kvSet } from "../core/db";
 import en from "./en";
 import pl from "./pl";
@@ -31,12 +31,20 @@ class I18n {
 
   t = (key: string, params?: Params) => this.ui.t(key, params);
 
-  pack(bundle: PackBundle | null) {
-    return bundle ? packTranslator(bundle, this.locale) : null;
+  // One translator per pack and locale, so components share its parsed ICU messages.
+  private packs = new WeakMap<PackBundle, Map<string, PackTranslator>>();
+
+  pack(bundle: PackBundle | null): PackTranslator | null {
+    if (!bundle) return null;
+    let byLocale = this.packs.get(bundle);
+    if (!byLocale) this.packs.set(bundle, (byLocale = new Map()));
+    let tr = byLocale.get(this.locale);
+    if (!tr) byLocale.set(this.locale, (tr = packTranslator(bundle, this.locale)));
+    return tr;
   }
 
   packName(bundle: PackBundle) {
-    return packTranslator(bundle, this.locale).t("name", undefined, bundle.id);
+    return this.pack(bundle)!.t("name", undefined, bundle.id);
   }
 }
 

@@ -5,6 +5,7 @@
   import Panel from "../ui/Panel.svelte";
   import LogEntry from "./LogEntry.svelte";
   import { describeEvent } from "./log-text";
+  import { seatLabel } from "../room/seat-label";
 
   let { session }: { session: GameSession } = $props();
 
@@ -17,7 +18,7 @@
   );
 
   function who(dev: string) {
-    const names = st.seats.filter((s) => s.device === dev).map((s) => s.name);
+    const names = st.seats.filter((s) => s.device === dev).map((s) => seatLabel(st, s));
     if (names.length) return names.join(", ");
     return dev === st.host ? t("log.host") : `…${dev.slice(-4)}`;
   }

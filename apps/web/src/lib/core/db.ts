@@ -26,6 +26,8 @@ export interface EventRow {
   id: string;
   dev: string;
   ts: number;
+  /** The seat the sender's token is bound to, as stamped by the relay. */
+  seat?: string | null;
   env: Envelope | null;
   error?: string;
 }

@@ -25,7 +25,8 @@
   animation: enter-up 220ms var(--ease) both;
 }
 
-.dialog[open] {
+.dialog[open],
+.sheet[open] {
   animation: sheet-up 140ms var(--ease);
 }
 

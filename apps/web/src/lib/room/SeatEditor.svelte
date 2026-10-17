@@ -2,7 +2,7 @@
   import Check from "@lucide/svelte/icons/check";
   import X from "@lucide/svelte/icons/x";
   import { untrack } from "svelte";
-  import type { SeatState } from "@tessera/engine";
+  import { NAME_MAX, type SeatState } from "@tessera/engine";
   import { t } from "../i18n/index.svelte";
   import { SEAT_COLORS } from "./seat-colors";
 
@@ -21,7 +21,7 @@
 
 <form class="seat-editor enter" onsubmit={submit}>
   <div class="row-nowrap">
-    <input class="input grow" bind:value={name} aria-label={t("room.rename")} maxlength="40" />
+    <input class="input grow" bind:value={name} aria-label={t("room.rename")} maxlength={NAME_MAX} />
     <button type="button" class="icon-btn" aria-label={t("common.cancel")} onclick={oncancel}><X size={18} /></button>
     <button type="submit" class="btn btn-primary" aria-label={t("common.save")} disabled={!name.trim()}><Check size={18} /></button>
   </div>

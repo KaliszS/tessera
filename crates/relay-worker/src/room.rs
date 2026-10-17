@@ -161,13 +161,23 @@ impl Room {
             vec![],
         )?;
         self.db.exec(
-            "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, cid TEXT NOT NULL UNIQUE, data TEXT NOT NULL, ts INTEGER NOT NULL, dev TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, cid TEXT NOT NULL UNIQUE, data TEXT NOT NULL, ts INTEGER NOT NULL, dev TEXT NOT NULL, seat TEXT)",
             vec![],
         )?;
+        self.set_meta("events_seat", "1")?;
         self.set_meta("room", &init.room)?;
         self.set_meta("created", &init.created.to_string())?;
         if let Some(label) = &init.label {
             self.set_meta("label", label)?;
+        }
+        Ok(())
+    }
+
+    /// Rooms created before events carried the sender's seat get the column once.
+    fn migrate(&self) -> Result<()> {
+        if self.meta("events_seat")?.is_none() {
+            self.db.exec("ALTER TABLE events ADD COLUMN seat TEXT", vec![])?;
+            self.set_meta("events_seat", "1")?;
         }
         Ok(())
     }
@@ -229,6 +239,7 @@ impl Room {
             ws.close(Some(CLOSE_NOT_FOUND), Some("room not found"))?;
             return Response::from_websocket(pair.client);
         }
+        self.migrate()?;
         ws.serialize_attachment(&session)?;
         send(
             &ws,
@@ -246,7 +257,7 @@ impl Room {
 
     fn since(&self, ws: &WebSocket, after: u32) -> Result<()> {
         let rows: Vec<EventRecord> = self.db.rows(
-            "SELECT seq, cid AS id, data, ts, dev FROM events WHERE seq > ? ORDER BY seq LIMIT ?",
+            "SELECT seq, cid AS id, data, ts, dev, seat FROM events WHERE seq > ? ORDER BY seq LIMIT ?",
             vec![(after as i64).into(), (MAX_PAGE_EVENTS as i64 + 1).into()],
         )?;
         let mut more = rows.len() > MAX_PAGE_EVENTS;
@@ -307,12 +318,13 @@ impl Room {
         }
         let ts = now_ms();
         let row: SeqRow = self.db.one(
-            "INSERT INTO events (cid, data, ts, dev) VALUES (?, ?, ?, ?) RETURNING seq",
+            "INSERT INTO events (cid, data, ts, dev, seat) VALUES (?, ?, ?, ?, ?) RETURNING seq",
             vec![
                 id.as_str().into(),
                 data.as_str().into(),
                 ts.into(),
                 session.device.as_str().into(),
+                session.seat.as_deref().into(),
             ],
         )?;
         let seq = row.seq.unwrap_or(head + 1);
@@ -331,6 +343,7 @@ impl Room {
                 data,
                 ts,
                 dev: session.device.clone(),
+                seat: session.seat.clone(),
             },
         })
     }

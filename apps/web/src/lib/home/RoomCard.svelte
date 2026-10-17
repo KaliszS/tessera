@@ -6,7 +6,7 @@
   import type { RoomRow } from "../core/db";
   import { href } from "../core/nav";
   import { i18n, t } from "../i18n/index.svelte";
-  import { coverOf } from "./shelf";
+  import MiniBox from "./MiniBox.svelte";
 
   let {
     room,
@@ -33,7 +33,7 @@
 
 <li class="room-card enter">
   <a class="room-card-main" href={href(`/room/${room.id}`)}>
-    <span class="box3d mini-box" style:--cover={coverOf(room.packId ?? room.id, bundle)} title={gameName}>{(gameName || "?").charAt(0)}</span>
+    <MiniBox id={room.packId ?? room.id} {bundle} name={gameName} />
     <span class="room-card-body">
       <span class="room-card-title truncate">{room.label || gameName || room.id}</span>
       <span class="room-card-meta">

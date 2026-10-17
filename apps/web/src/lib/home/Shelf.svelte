@@ -20,8 +20,10 @@
   onMount(refresh);
 
   async function install(item: ShelfItem) {
-    if (item.dev?.errors.length) return toasts.show(item.dev.errors[0], "error", 8000);
-    await installPack(item.bundle, "dev");
+    const dev = item.dev;
+    if (!dev?.bundle) return;
+    if (dev.errors.length) return toasts.show(dev.errors[0], "error", 8000);
+    await installPack(dev.bundle, "dev");
     toasts.show(t("home.installed", { name: i18n.packName(item.bundle) }));
     await refresh();
   }
@@ -30,9 +32,11 @@
     const row = item.installed;
     if (!row) return install(item);
     const action = await choose(i18n.packName(item.bundle), [
+      ...(item.dev ? [{ id: "update", label: t("home.update_pack") }] : []),
       { id: "export", label: t("home.export_pack") },
       { id: "remove", label: t("common.remove"), danger: true },
     ]);
+    if (action === "update") await install(item);
     if (action === "export") download(`${row.id}.tessera.json`, JSON.stringify(row.bundle));
     if (action === "remove" && (await confirmAction(t("home.remove_pack"), undefined, t("common.remove"), true))) {
       await db.packs.delete(row.hash);
