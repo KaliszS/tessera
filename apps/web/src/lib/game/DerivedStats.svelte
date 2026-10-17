@@ -17,7 +17,7 @@
       {#each shown as [k, v] (k)}
         <div class="stat">
           <span class="small muted">{tr.t(`derived.${k}`)}</span>
-          <span class="stat-value">{typeof v === "boolean" ? (v ? "✓" : "—") : v}</span>
+          <span class="stat-value">{typeof v === "boolean" ? (v ? "✓" : "-") : v}</span>
         </div>
       {/each}
     </div>

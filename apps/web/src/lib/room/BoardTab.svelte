@@ -2,6 +2,7 @@
   import SeatBoard from "../game/SeatBoard.svelte";
   import type { GameSession } from "../sync/session.svelte";
   import Panel from "../ui/Panel.svelte";
+  import RoundPrep from "./RoundPrep.svelte";
   import SeatSwitcher from "./SeatSwitcher.svelte";
   import TrackBar from "./TrackBar.svelte";
 
@@ -17,6 +18,7 @@
   {#if hasTracks}
     <Panel><TrackBar {session} /></Panel>
   {/if}
+  <RoundPrep {session} />
   <SeatSwitcher {session} selected={seat} onselect={(id) => (selected = id)} />
   {#if seat}
     {#key seat.id}

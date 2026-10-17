@@ -17,6 +17,10 @@ pub struct EventRecord {
     #[cfg_attr(feature = "ts", ts(type = "number"))]
     pub ts: i64,
     pub dev: String,
+    /// The seat the sender's token is bound to, taken from the signed token, so clients can trust it
+    /// (e.g. a seat invite may claim its seat even when only the host seats players).
+    #[serde(default)]
+    pub seat: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

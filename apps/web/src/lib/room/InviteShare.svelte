@@ -3,6 +3,7 @@
   import Copy from "@lucide/svelte/icons/copy";
   import Share from "@lucide/svelte/icons/share-2";
   import X from "@lucide/svelte/icons/x";
+  import { copyText } from "../core/clipboard";
   import { t } from "../i18n/index.svelte";
   import Panel from "../ui/Panel.svelte";
   import Qr from "../ui/Qr.svelte";
@@ -11,7 +12,7 @@
   let copied = $state(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(url);
+    if (!(await copyText(url).then(() => true, () => false))) return;
     copied = true;
     setTimeout(() => (copied = false), 1500);
   }

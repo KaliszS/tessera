@@ -15,7 +15,6 @@
 }
 
 .tab {
-  appearance: none;
   position: relative;
   flex: none;
   display: inline-flex;
@@ -23,13 +22,9 @@
   gap: 6px;
   height: 46px;
   padding: 0 var(--gap-3);
-  border: 0;
-  background: transparent;
   color: var(--muted);
-  font: inherit;
   font-size: 0.92rem;
   font-weight: 650;
-  cursor: pointer;
   transition: color var(--dur) var(--ease);
 }
 
@@ -132,21 +127,6 @@ button.game-card:disabled {
   gap: var(--gap-2);
 }
 
-.seat-row {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-3);
-  min-height: 60px;
-}
-
-.seat-total {
-  min-width: 40px;
-  font-size: 1.2rem;
-  font-weight: 750;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .counter-tile {
   display: flex;
   flex-direction: column;
@@ -241,17 +221,12 @@ button.game-card:disabled {
 }
 
 .scoresheet .cell {
-  appearance: none;
   min-width: 48px;
   height: 40px;
-  border: 0;
   border-radius: 8px;
-  background: transparent;
   color: var(--text);
-  font: inherit;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
 }
 
 .scoresheet .cell:hover {
@@ -565,20 +540,26 @@ button.game-card:disabled {
   padding-left: 6px;
 }
 
-.avatar {
+/* A player's initial on their colour: `.avatar` in the stacked row of a room card, `.avatar-disc` elsewhere. */
+.avatar,
+.avatar-disc {
   display: grid;
   place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-shadow: var(--ink-shadow);
+}
+
+.avatar {
   width: 22px;
   height: 22px;
   margin-left: -6px;
-  border-radius: 50%;
   border: 2px solid var(--surface);
-  background: var(--c);
-  color: #fff;
   font-size: 0.66rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  text-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
 }
 
 .avatar.mine {
@@ -680,4 +661,889 @@ button.game-card:disabled {
     color: var(--accent-strong);
     transform: translateX(3px);
   }
+}
+
+/* Lobby: vertical timeline of setup steps. */
+.lobby {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-4);
+}
+
+.lobby-progress {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.lobby-progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 300ms var(--ease);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  padding-left: 44px;
+}
+
+/* Rail connecting the step dots. */
+.step::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.step:first-child::before {
+  top: 22px;
+}
+
+.step:last-child::before {
+  bottom: calc(100% - 22px);
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--gap-2) 0;
+  color: var(--text);
+  text-align: left;
+}
+
+.step-dot {
+  position: absolute;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.step.current .step-dot {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.step.done .step-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.step-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-title {
+  font-weight: 700;
+}
+
+.step-summary {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* The fold arrow of a collapsible block (a lobby step, a <details> panel). */
+.chevron {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  transition: transform var(--dur) var(--ease);
+}
+
+.step.open .chevron,
+details[open] > summary .chevron {
+  transform: rotate(180deg);
+}
+
+.step-body {
+  padding: 0 0 var(--gap-4);
+}
+
+.lobby-start {
+  min-height: 52px;
+}
+
+.assign-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  padding: 6px 0;
+}
+
+.assign-name {
+  width: 30%;
+  font-weight: 600;
+}
+
+.assign-row .ref-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.first-player {
+  color: var(--muted);
+}
+
+.first-player .select {
+  min-width: 0;
+}
+
+.prep-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: start;
+  gap: var(--gap-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prep-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.prep-card.picture {
+  grid-column: 1 / -1;
+  padding: 8px 12px 10px;
+}
+
+.prep-card.done {
+  padding-bottom: 6px;
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+
+.prep-head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+}
+
+.prep-toggle {
+  flex: 1;
+}
+
+.prep-check {
+  display: grid;
+  flex: none;
+  color: var(--muted);
+}
+
+.prep-card.done .prep-check {
+  color: var(--ok);
+}
+
+.prep-title {
+  font-weight: 700;
+}
+
+.prep-card.done .prep-title {
+  color: var(--muted);
+}
+
+.prep-count {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.prep-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 30px;
+}
+
+/* A tiny card back in the section's colour (e.g. the brown, silver or gold back of a deck). */
+/* A card face in its colour, lit from the top left. */
+.card-back,
+.pic-pile {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c));
+}
+
+.card-back {
+  flex: none;
+  width: 15px;
+  height: 21px;
+  border-radius: 3px;
+
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 255 255 / 0.45),
+    0 0 0 1px color-mix(in srgb, var(--c) 70%, #000);
+}
+
+.prep-marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A player-count mark as printed on the cards. */
+.mark {
+  min-width: 34px;
+  padding: 2px 8px;
+  border: 1.5px solid var(--c, var(--border-strong));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--c, var(--surface-2)) 14%, var(--surface));
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.prep-area {
+  margin: var(--gap-1) 0 0;
+}
+
+.setup-picture {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 12px;
+  padding: 6px 0 2px;
+}
+
+.pic-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A face-down stack of cards; `.spot` is an empty place for one (e.g. the discard pile). */
+.pic-pile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 48px;
+  border-radius: 5px;
+
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-shadow: var(--ink-shadow);
+  box-shadow:
+    inset 0 0 0 2px var(--ring, rgb(255 255 255 / 0.4)),
+    2px 2px 0 -1px var(--surface),
+    2px 2px 0 0 color-mix(in srgb, var(--c) 60%, #000),
+    4px 4px 0 -1px var(--surface),
+    4px 4px 0 0 color-mix(in srgb, var(--c) 60%, #000);
+}
+
+.pic-pile.outlined {
+  --ring: var(--o);
+}
+
+/* One card on its own (a drawn card lying face up, a card with something on it) rather than a deck. */
+.pic-pile.single {
+  box-shadow:
+    inset 0 0 0 2px var(--ring, rgb(255 255 255 / 0.4)),
+    0 1px 3px rgb(0 0 0 / 0.25);
+}
+
+/* A blueprint grid on the card's face, e.g. an Edifice lying project side up. */
+.pic-pile.grid {
+  background:
+    linear-gradient(color-mix(in srgb, var(--c) 78%, #4a6a8a) 1px, transparent 1px) 0 0 / 7px 7px,
+    linear-gradient(90deg, color-mix(in srgb, var(--c) 78%, #4a6a8a) 1px, transparent 1px) 0 0 / 7px 7px,
+    var(--c);
+  text-shadow: 0 0 3px var(--c), 0 0 3px var(--c);
+}
+
+.pic-pile.large {
+  width: 42px;
+  height: 60px;
+}
+
+.pic-pile.long {
+  font-size: 0.55rem;
+  letter-spacing: -1px;
+}
+
+/* A token: a coloured shape with a short face, e.g. -1 on a defeat token or a ship on a fleet figure. */
+.pic-token {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 9px 0;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-shadow: var(--ink-shadow);
+  filter: drop-shadow(1.5px 1.5px 0 color-mix(in srgb, var(--c) 55%, #000));
+}
+
+.pic-token.disc {
+  border-radius: 50%;
+}
+
+/* A figure: the icon's silhouette in the item's colour, e.g. a ship or a meeple. */
+.pic-token.figure {
+  width: 32px;
+  height: 32px;
+  margin: 8px 0;
+  background: none;
+  color: var(--c);
+  filter: drop-shadow(1px 1.5px 0 color-mix(in srgb, var(--c) 50%, #000));
+}
+
+.pic-token .glyph-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Something lying on a card or board, e.g. participation pawns on an Edifice; the card's label moves to its top. */
+.pic-on {
+  position: absolute;
+  inset: auto 0 6px;
+  display: flex;
+  justify-content: center;
+}
+
+/* A card with something lying on it keeps its label at the top. */
+.pic-pile.carrying {
+  align-items: start;
+  padding-top: 4px;
+}
+
+.pic-on .pic-token {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+
+.ref-select {
+  position: relative;
+  min-width: 0;
+}
+
+.ref-select-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ref-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ref-post {
+  color: var(--muted);
+}
+
+.ref-select-list {
+  left: 0;
+  max-height: 280px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ref-select-list button {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--text);
+  text-align: left;
+}
+
+.ref-select-list button:hover,
+.ref-select-list [aria-selected="true"] {
+  background: var(--surface-2);
+}
+
+.pic-token-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.pic-token.square {
+  width: 26px;
+  height: 26px;
+  margin: 11px 0;
+  border-radius: 3px;
+}
+
+.pic-token.flag {
+  height: 26px;
+  margin: 11px 0;
+  border-radius: 5px;
+}
+
+.pic-token.pentagon {
+  clip-path: polygon(50% 0, 100% 38%, 81% 100%, 19% 100%, 0 38%);
+  padding-top: 4px;
+}
+
+.pic-token.shield {
+  clip-path: polygon(50% 0, 100% 12%, 100% 70%, 50% 100%, 0 70%, 0 12%);
+}
+
+/* Items drawn together (a token pair, or one item with its expansion marker) share a caption. */
+.pic-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pic-modules {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  display: flex;
+  gap: 2px;
+}
+
+.pic-module {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border-strong);
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* A flat player board, taller than a card, with optional coloured tracks along its bottom edge. */
+.pic-board {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.25);
+}
+
+.pic-stripes {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  height: 7px;
+}
+
+.pic-stripes > span {
+  flex: 1;
+}
+
+.pic-pile.spot {
+  border: 1.5px dashed var(--border-strong);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Where a card comes from (an expansion's mark), kept in the corner so the centre stays for the age. */
+.pic-symbol {
+  position: absolute;
+  left: 3px;
+  bottom: 2px;
+  font-size: 0.78rem;
+  line-height: 1;
+  text-shadow: none;
+}
+
+.pic-count {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  font-size: 0.7rem;
+  line-height: 20px;
+  text-align: center;
+  text-shadow: none;
+}
+
+.pic-pieces {
+  height: 48px;
+  font-size: 1.3rem;
+  letter-spacing: -6px;
+  line-height: 48px;
+}
+
+/* Which marks to take from a pile, e.g. player counts, written under it. */
+.pic-marks {
+  max-width: 64px;
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.pic-caption {
+  max-width: 72px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.pic-arrow {
+  display: grid;
+  place-items: center;
+  height: 48px;
+  color: var(--muted);
+}
+
+.prep-pieces {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gap-2);
+}
+
+.piece {
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+}
+
+.prep-more summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.step-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--gap-2);
+}
+
+.step-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 0 var(--gap-2);
+  border-radius: 8px;
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.step-next:hover {
+  background: var(--accent-soft);
+}
+
+.game-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  padding-bottom: var(--gap-1);
+}
+
+/* A module with variants takes a whole row while on, so its variant chips sit right after its name. */
+.module-tile.open {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--gap-3);
+}
+
+.module-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* A variant is a smaller switch in an outlined pill, so it reads as an option of the module before it. */
+.toggle-item.small {
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.toggle-item.small[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.toggle-item.small .switch {
+  --sw-w: 32px;
+  --sw-h: 20px;
+  --sw-knob: 14px;
+}
+
+.toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--gap-1) var(--gap-4);
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  min-width: 0;
+  min-height: 40px;
+  color: var(--text);
+  text-align: left;
+}
+
+.toggle-item:disabled {
+  cursor: default;
+}
+
+/* Player avatar disc; `.empty` is a free seat, `.mine` is this device. */
+.avatar-disc {
+  width: 36px;
+  height: 36px;
+  font-size: 0.95rem;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+
+.avatar-disc.mine {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+.avatar-disc.vacant {
+  border: 2px dashed var(--c);
+  background: var(--bg);
+  color: var(--c);
+  text-shadow: none;
+  box-shadow: none;
+}
+
+.seat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  min-height: 56px;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.seat-card.free {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: transparent;
+  box-shadow: none;
+}
+
+.seat-card.mine {
+  border-color: var(--accent);
+}
+
+.seat-card.waiting {
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+.seat-card.dragging {
+  z-index: 2;
+  transform: scale(1.02);
+  box-shadow: var(--shadow-2);
+}
+
+.seat-card.editing {
+  display: block;
+  padding: 4px 12px;
+}
+
+.drag-handle {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 40px;
+  margin-left: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.seat-status {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.seat-status.me {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* Round table preview: seats clockwise from the top. */
+.table-view {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 17 / 11;
+  margin: var(--gap-1) auto var(--gap-2);
+}
+
+/* Turn order: a dashed ring through the seats. */
+.table-view::before {
+  content: "";
+  position: absolute;
+  inset: 11% 9%;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 50%;
+}
+
+.table-top {
+  position: absolute;
+  inset: 24% 21%;
+  display: grid;
+  place-items: center;
+  padding: 0 var(--gap-3);
+  border: 2px solid color-mix(in srgb, var(--wood-1) 55%, var(--surface));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--wood-top) 30%, var(--surface));
+}
+
+.table-center {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.table-seat {
+  appearance: none;
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition:
+    left 300ms var(--ease),
+    top 300ms var(--ease);
+}
+
+.table-seat.first::after {
+  content: "1";
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.seat-card .icon-btn {
+  width: 34px;
+  height: 34px;
+}
+
+.seat-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.seat-claim {
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
 }

@@ -21,7 +21,7 @@
 
 {#each tracks as [name, def] (name)}
   {@const label = tr.t(`tracks.${name}`, undefined, name)}
-  {@const value = session.state.tracks[name] ?? def.initial}
+  {@const value = session.state.tracks[name]}
   <div class="row spread">
     <span class="field-label">{label}</span>
     {#if def.min !== undefined && def.max !== undefined && def.max - def.min <= 9}

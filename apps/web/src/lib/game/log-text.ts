@@ -1,4 +1,6 @@
-import type { GameEvent, GameState, PackBundle, PackTranslator } from "@tessera/engine";
+import { type GameEvent, type GameState, type PackBundle, type PackTranslator, parseSetupKey } from "@tessera/engine";
+import { roundLabel } from "../core/pack-ui";
+import { seatLabel } from "../room/seat-label";
 
 /** One-line, translated description of a logged event. */
 export function describeEvent(
@@ -8,9 +10,18 @@ export function describeEvent(
   tr: PackTranslator | null,
   t: (key: string, params?: Record<string, string | number>) => string,
 ): string {
-  const seat = (id: string) => state.seats.find((s) => s.id === id)?.name ?? id;
+  const seat = (id: string) => {
+    const s = state.seats.find((x) => x.id === id);
+    return s ? seatLabel(state, s, t) : id;
+  };
   const label = (ns: string, k: string) => tr?.t(`${ns}.${k}`, undefined, k) ?? k;
   const zoneCatalog = (zone: string) => bundle?.game.seat.zones[zone]?.catalog ?? "";
+  const setupLabel = (key: string) => {
+    const { step, round, section } = parseSetupKey(key);
+    if (step) return t(`lobby.step_${step}`);
+    if (round === null || !bundle || !tr) return label("setup", section);
+    return `${label("setup", section)} (${roundLabel(bundle, tr, round)})`;
+  };
 
   switch (e.t) {
     case "zone.add":
@@ -24,7 +35,7 @@ export function describeEvent(
     case "field.set": {
       const def = bundle?.game.seat.fields[e.field];
       const value =
-        e.value === null ? "—" : def?.type === "ref" && def.catalog ? (tr?.name(def.catalog, String(e.value)) ?? String(e.value)) : String(e.value);
+        e.value === null ? "-" : def?.type === "ref" && def.catalog ? (tr?.name(def.catalog, String(e.value)) ?? String(e.value)) : String(e.value);
       return t("log.field_set", { seat: seat(e.seat), field: label("fields", e.field), value });
     }
     case "track.set":
@@ -38,7 +49,17 @@ export function describeEvent(
     case "adjust.set":
       return t("log.adjust_set", { seat: seat(e.seat), category: label("categories", e.category), value: e.value });
     case "setup.roll":
-      return t("log.setup_roll", { section: label("setup", e.section) });
+      return t("log.setup_roll", { section: setupLabel(e.section) });
+    case "member.hello":
+      return t("log.member_hello", { name: e.name });
+    case "seat.assign":
+      return t("log.seat_assign", { seat: seat(e.seat), name: e.device ? (state.members[e.device]?.name ?? "…") : "-" });
+    case "pack.set":
+      return t("log.pack_set", { version: e.pack.version });
+    case "phase.set":
+      return t(`log.phase_${e.phase}`);
+    case "setup.check":
+      return `${setupLabel(e.section)} ${e.done ? "✓" : "○"}`;
     case "undo":
       return t("log.undo", { seq: e.target });
     default:

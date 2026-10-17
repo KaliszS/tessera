@@ -9,6 +9,16 @@
   box-shadow: var(--shadow-1);
 }
 
+/* A foldable panel: its head is the <summary> that opens and closes it. */
+.panel.foldable > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.panel.foldable > summary::-webkit-details-marker {
+  display: none;
+}
+
 .panel-head {
   display: flex;
   align-items: center;
@@ -102,6 +112,50 @@
   color: var(--danger);
 }
 
+/* An "i" that reveals a short explanation: on hover where there is a pointer, on tap everywhere. */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.info-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--muted);
+}
+
+.info-btn:hover,
+.info-btn.active {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* A floating panel anchored under its trigger (an info text, a dropdown list). */
+.popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.info-pop {
+  width: max-content;
+  max-width: min(280px, 80vw);
+  padding: 8px 10px;
+  color: var(--text-2);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
 .notice {
   display: flex;
   align-items: flex-start;
@@ -121,6 +175,12 @@
 .notice.warn {
   background: var(--warn-soft);
   color: var(--warn);
+}
+
+.notice.accent {
+  align-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
 }
 
 .notice.ok {
@@ -143,11 +203,6 @@
   height: 10px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
-}
-
-.dot-l {
-  width: 16px;
-  height: 16px;
 }
 
 .toasts {
@@ -183,19 +238,25 @@
   color: #fff;
 }
 
-.dialog {
-  width: min(440px, calc(100vw - 2 * var(--gap-4)));
+/* A modal <dialog>: a bottom sheet on phones, centred from 640px. `.dialog` asks, `.sheet` holds a whole panel. */
+.dialog,
+.sheet {
   margin: auto auto 0;
   padding: 0;
   border: 0;
   border-radius: var(--radius-l) var(--radius-l) 0 0;
-  background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow-2);
 }
 
-.dialog::backdrop {
+.dialog::backdrop,
+.sheet::backdrop {
   background: rgb(10 12 16 / 0.45);
+}
+
+.dialog {
+  width: min(440px, calc(100vw - 2 * var(--gap-4)));
+  background: var(--surface);
 }
 
 .dialog-body {
@@ -216,7 +277,8 @@
 }
 
 @media (min-width: 640px) {
-  .dialog {
+  .dialog,
+  .sheet {
     margin: auto;
     border-radius: var(--radius-l);
   }
@@ -378,3 +440,30 @@ label.icon-btn {
 .settings-grid .panel-head {
   min-height: 32px;
 }
+
+/* Full-height sheet (room settings); slides up on phones, centred on desktop. */
+.sheet {
+  width: min(560px, 100vw);
+  max-height: 92dvh;
+  background: var(--bg);
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-4);
+  padding: var(--gap-3) var(--gap-4) calc(var(--gap-5) + env(safe-area-inset-bottom));
+}
+
+.sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 calc(-1 * var(--gap-4));
+  padding: 0 var(--gap-2) 0 var(--gap-4);
+  background: var(--bg);
+}
+

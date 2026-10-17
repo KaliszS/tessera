@@ -1,6 +1,6 @@
 import { parse as parseYaml } from "yaml";
 import { csvToRows } from "./csv";
-import { GameDef, LocaleTree, type PackBundle, type Row } from "./schema";
+import { GameDef, LocaleTree, type ModuleRef, type PackBundle, type Row } from "./schema";
 
 export type PackFiles = Record<string, string>;
 
@@ -111,7 +111,68 @@ export function catalogIndex(bundle: PackBundle): Record<string, Map<string, Row
   return out;
 }
 
+/** Starting value of a track. */
+export const trackStart = (def: { initial?: number; min?: number }) => def.initial ?? def.min ?? 0;
+
+/** Player range with these modules on: each enabled module may widen the base range. */
+export function playerRange(game: GameDef, modules: string[]): { min: number; max: number } {
+  let { min, max } = game.players;
+  for (const m of game.modules) {
+    if (!m.players || !modules.includes(m.id)) continue;
+    if (m.players.min !== undefined) min = Math.min(min, m.players.min);
+    if (m.players.max !== undefined) max = Math.max(max, m.players.max);
+  }
+  return { min, max };
+}
+
+/** The player range of the game with every module on, e.g. for the box on the shelf. */
+export const widestPlayerRange = (game: GameDef) => playerRange(game, game.modules.map((m) => m.id));
+
+/** The module ids a requirement names. */
+export function moduleRefIds(need: ModuleRef | undefined): string[] {
+  if (need === undefined) return [];
+  return typeof need === "object" && !Array.isArray(need) ? need.any : [need].flat();
+}
+
+/** Whether a module requirement (one id, all of a list, or any of `{ any }`) is met. */
+export function modulesOn(modules: string[], need: ModuleRef | undefined): boolean {
+  const ids = moduleRefIds(need);
+  const any = typeof need === "object" && !Array.isArray(need);
+  return any ? ids.some((m) => modules.includes(m)) : ids.every((m) => modules.includes(m));
+}
+
+/** The modules a requirement names that are on, e.g. to mark a component with each expansion it comes from. */
+export const modulesNamed = (modules: string[], need: ModuleRef | undefined) =>
+  moduleRefIds(need).filter((m) => modules.includes(m));
+
+export type ModuleDef = GameDef["modules"][number];
+
+/** Top-level modules with their variants (modules whose last `requires` is this one) and parts (`part_of` it). */
+export function moduleTree(game: GameDef): Array<{ def: ModuleDef; variants: ModuleDef[]; parts: ModuleDef[] }> {
+  return game.modules
+    .filter((m) => !m.requires?.length && !m.part_of)
+    .map((def) => ({
+      def,
+      variants: game.modules.filter((m) => m.requires?.at(-1) === def.id),
+      parts: game.modules.filter((m) => m.part_of === def.id),
+    }));
+}
+
+/** A part is switched on by its module and cannot be turned off while that module is on. */
+export const moduleLocked = (modules: string[], def: ModuleDef) => !!def.part_of && modules.includes(def.part_of);
+
+/** Drops modules whose `requires` are not all on, repeatedly, so chains of dependants switch off together;
+ * adds the parts (`part_of`) of every module that is on. */
+export function validModules(game: GameDef, modules: string[]): string[] {
+  let out = [...new Set(modules)];
+  for (const m of game.modules) if (m.part_of && out.includes(m.part_of) && !out.includes(m.id)) out.push(m.id);
+  for (;;) {
+    const next = out.filter((m) => modulesOn(out, game.modules.find((d) => d.id === m)?.requires));
+    if (next.length === out.length) return out;
+    out = next;
+  }
+}
+
 export function rowEnabled(row: Row, modules: string[]): boolean {
-  const m = row.module;
-  return m === undefined || m === null || m === "" || modules.includes(String(m));
+  return row.module === undefined || row.module === null || row.module === "" || modulesOn(modules, String(row.module));
 }

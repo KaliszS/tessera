@@ -55,6 +55,37 @@
           "default": {
             "default": false,
             "type": "boolean"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            }
+          },
+          "part_of": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "players": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "max": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -119,7 +150,6 @@
         "type": "object",
         "properties": {
           "initial": {
-            "default": 0,
             "type": "number"
           },
           "min": {
@@ -167,6 +197,15 @@
                 "minLength": 1
               },
               "values": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unique_by": {
+                "type": "string"
+              },
+              "variants": {
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -344,6 +383,7 @@
       "type": "object",
       "properties": {
         "sections": {
+          "default": [],
           "type": "array",
           "items": {
             "type": "object",
@@ -351,6 +391,35 @@
               "id": {
                 "type": "string",
                 "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "module": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "any": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "any"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
               },
               "catalog": {
                 "type": "string"
@@ -367,8 +436,155 @@
                 "type": "string",
                 "minLength": 1
               },
-              "group_by": {
+              "per_player": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                }
+              },
+              "params": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                }
+              },
+              "when": {
+                "type": "string",
+                "minLength": 1
+              },
+              "marks": {
+                "type": "string",
+                "minLength": 1
+              },
+              "color": {
                 "type": "string"
+              },
+              "list": {
+                "type": "boolean"
+              },
+              "area": {
+                "type": "string",
+                "enum": [
+                  "player",
+                  "components",
+                  "table"
+                ]
+              },
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              },
+              "layout": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "const": "arrow"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "group": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/$defs/LayoutPile"
+                          }
+                        },
+                        "caption": {
+                          "type": "string",
+                          "maxLength": 24
+                        },
+                        "module": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "any": {
+                                  "minItems": 1,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "any"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "group"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "merge": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/$defs/LayoutPile"
+                          }
+                        },
+                        "into": {
+                          "$ref": "#/$defs/LayoutPile"
+                        }
+                      },
+                      "required": [
+                        "merge",
+                        "into"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/$defs/LayoutPile"
+                    }
+                  ]
+                }
               }
             },
             "required": [
@@ -376,11 +592,231 @@
             ],
             "additionalProperties": false
           }
+        },
+        "rounds": {
+          "type": "object",
+          "properties": {
+            "track": {
+              "type": "string"
+            },
+            "sections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                  },
+                  "module": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "any": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "any"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "catalog": {
+                    "type": "string"
+                  },
+                  "filter": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "copies": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pick_random": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "per_player": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      ]
+                    }
+                  },
+                  "params": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      ]
+                    }
+                  },
+                  "when": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "marks": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "list": {
+                    "type": "boolean"
+                  },
+                  "area": {
+                    "type": "string",
+                    "enum": [
+                      "player",
+                      "components",
+                      "table"
+                    ]
+                  },
+                  "count": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "const": "arrow"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "group": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/$defs/LayoutPile"
+                              }
+                            },
+                            "caption": {
+                              "type": "string",
+                              "maxLength": 24
+                            },
+                            "module": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "any": {
+                                      "minItems": 1,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "any"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "group"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "merge": {
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/$defs/LayoutPile"
+                              }
+                            },
+                            "into": {
+                              "$ref": "#/$defs/LayoutPile"
+                            }
+                          },
+                          "required": [
+                            "merge",
+                            "into"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "$ref": "#/$defs/LayoutPile"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "track",
+            "sections"
+          ],
+          "additionalProperties": false
         }
       },
-      "required": [
-        "sections"
-      ],
       "additionalProperties": false
     },
     "ui": {
@@ -449,5 +885,218 @@
     "version",
     "players"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "LayoutPile": {
+      "type": "object",
+      "properties": {
+        "module": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "any": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "any"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "color": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "marks": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outline": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "large"
+          ]
+        },
+        "pattern": {
+          "type": "string",
+          "enum": [
+            "grid"
+          ]
+        },
+        "shape": {
+          "type": "string",
+          "enum": [
+            "disc",
+            "square",
+            "flag",
+            "pentagon",
+            "shield",
+            "board",
+            "figure"
+          ]
+        },
+        "ink": {
+          "type": "string"
+        },
+        "stripes": {
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "on": {
+          "$ref": "#/$defs/LayoutBase"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LayoutBase": {
+      "type": "object",
+      "properties": {
+        "module": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "any": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "any"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "color": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "marks": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outline": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "large"
+          ]
+        },
+        "pattern": {
+          "type": "string",
+          "enum": [
+            "grid"
+          ]
+        },
+        "shape": {
+          "type": "string",
+          "enum": [
+            "disc",
+            "square",
+            "flag",
+            "pentagon",
+            "shield",
+            "board",
+            "figure"
+          ]
+        },
+        "ink": {
+          "type": "string"
+        },
+        "stripes": {
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
 }

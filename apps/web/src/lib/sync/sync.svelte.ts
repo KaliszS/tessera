@@ -1,6 +1,7 @@
 import { Envelope, type GameEvent, type LoggedEvent } from "@tessera/engine";
 import type { EventRecord, LockInfo, RejectReason, ServerMsg } from "@tessera/protocol";
 import { open, seal } from "../core/crypto";
+import { tokenClaims } from "../core/invite";
 import { type EventRow, type OutboxRow, type RoomRow, db } from "../core/db";
 import { wsUrl } from "../core/relay";
 import { randomId } from "../core/util";
@@ -12,12 +13,13 @@ export type SyncStatus = "idle" | "connecting" | "syncing" | "online" | "offline
 export type Revalidate = (env: Envelope, events: LoggedEvent[]) => string | null;
 
 const PING_MS = 25_000;
+const UNDECRYPTABLE = "cannot decrypt (wrong room key?)";
 const PONG_TIMEOUT_MS = 8_000;
 
 function toLogged(rows: EventRow[], device: string): LoggedEvent[] {
   return rows
     .filter((r) => r.env && (!r.env.to || r.env.to === device))
-    .map((r) => ({ seq: r.seq, dev: r.dev, ts: r.ts, event: r.env!.e }));
+    .map((r) => ({ seq: r.seq, dev: r.dev, ts: r.ts, seat: r.seat ?? null, event: r.env!.e }));
 }
 
 export class RoomSync {
@@ -38,16 +40,27 @@ export class RoomSync {
   private inflight: OutboxRow | null = null;
   private chain: Promise<void> = Promise.resolve();
   revalidate: Revalidate | null = null;
+  /** The seat this device's token is bound to; the relay stamps it on what we send, so our own copies carry it too. */
+  readonly seat: string | null;
 
   constructor(
     readonly room: RoomRow,
     readonly device: string,
-  ) {}
+  ) {
+    this.seat = tokenClaims(room.token)?.s ?? null;
+  }
 
   async start() {
     if (!this.stopped) return;
     this.stopped = false;
-    const rows = await db.events.where("room").equals(this.room.id).sortBy("seq");
+    let rows = await db.events.where("room").equals(this.room.id).sortBy("seq");
+    // Events an older app version could not read are fetched again, so an update heals the local log.
+    // Ones that failed to decrypt would fail again, so they are left alone.
+    const broken = rows.find((r) => r.error && r.error !== UNDECRYPTABLE)?.seq;
+    if (broken !== undefined) {
+      await db.events.where("[room+seq]").between([this.room.id, broken], [this.room.id, Infinity]).delete();
+      rows = rows.filter((r) => r.seq < broken);
+    }
     this.events = toLogged(rows, this.device);
     this.head = rows.at(-1)?.seq ?? 0;
     this.pending = await db.outbox.where("room").equals(this.room.id).count();
@@ -208,13 +221,13 @@ export class RoomSync {
     const rows: EventRow[] = [];
     for (const r of records) {
       if (r.seq <= this.head) continue;
-      const row: EventRow = { room: this.room.id, seq: r.seq, id: r.id, dev: r.dev, ts: r.ts, env: null };
+      const row: EventRow = { room: this.room.id, seq: r.seq, id: r.id, dev: r.dev, ts: r.ts, seat: r.seat ?? null, env: null };
       try {
         const parsed = Envelope.safeParse(await open(this.room.key, this.room.id, r.data));
         if (parsed.success) row.env = parsed.data;
         else row.error = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
       } catch {
-        row.error = "cannot decrypt (wrong room key?)";
+        row.error = UNDECRYPTABLE;
       }
       rows.push(row);
       this.head = r.seq;
@@ -230,7 +243,7 @@ export class RoomSync {
     await db.outbox.delete(id);
     this.pending = Math.max(0, this.pending - 1);
     if (item && seq === this.head + 1) {
-      const row: EventRow = { room: this.room.id, seq, id, dev: this.device, ts: Date.now(), env: item.env };
+      const row: EventRow = { room: this.room.id, seq, id, dev: this.device, ts: Date.now(), seat: this.seat, env: item.env };
       await db.events.put(row);
       this.head = seq;
       this.events = [...this.events, ...toLogged([row], this.device)];

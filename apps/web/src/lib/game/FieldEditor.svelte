@@ -1,6 +1,7 @@
 <script lang="ts">
-  import type { FieldDef, PackBundle, Row } from "@tessera/engine";
-  import { rowId } from "../core/pack-ui";
+  import type { FieldDef, PackBundle } from "@tessera/engine";
+  import type { RefChoice } from "../core/pack-ui";
+  import RefSelect from "./RefSelect.svelte";
   import { i18n } from "../i18n/index.svelte";
   import Segmented from "../ui/Segmented.svelte";
 
@@ -9,14 +10,17 @@
     name,
     def,
     value,
-    options,
+    choices,
+    locked = false,
     onset,
   }: {
     bundle: PackBundle;
     name: string;
     def: FieldDef;
     value: string | number | null;
-    options: Row[];
+    /** For a ref field: what it can take. */
+    choices: RefChoice[];
+    locked?: boolean;
     onset: (value: string | number | null) => void;
   } = $props();
 
@@ -26,13 +30,13 @@
 <div class="field">
   <span class="field-label">{tr.t(`fields.${name}`, undefined, name)}</span>
   {#if def.type === "ref" && def.catalog}
-    <select class="select" value={String(value ?? "")} onchange={(e) => onset(e.currentTarget.value || null)}>
-      <option value="">—</option>
-      {#each options as r (rowId(bundle, def.catalog, r))}
-        {@const id = rowId(bundle, def.catalog, r)}
-        <option value={id}>{tr.name(def.catalog, id)}</option>
-      {/each}
-    </select>
+    <RefSelect
+      label={tr.t(`fields.${name}`, undefined, name)}
+      disabled={locked}
+      value={value === null ? null : String(value)}
+      {choices}
+      onchange={(v) => onset(v)}
+    />
   {:else if def.type === "enum"}
     <Segmented
       options={(def.values ?? []).map((v) => ({ value: v, label: tr.t(`values.${name}.${v}`, undefined, v) }))}

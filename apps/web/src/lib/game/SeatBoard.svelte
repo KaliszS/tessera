@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { GameEvent, Row, SeatState, SeatView } from "@tessera/engine";
-  import { selectRows } from "../core/pack-ui";
+  import { refChoices, seatInput, selectRows } from "../core/pack-ui";
+  import { i18n } from "../i18n/index.svelte";
   import { randomId } from "../core/util";
+  import { canAssign } from "../room/seat-actions";
   import type { GameSession } from "../sync/session.svelte";
   import Panel from "../ui/Panel.svelte";
   import CounterGrid from "./CounterGrid.svelte";
@@ -14,18 +16,19 @@
   const bundle = $derived(session.bundle!);
   const def = $derived(bundle.game.seat);
   const st = $derived(session.state);
+  const tr = $derived(i18n.pack(bundle)!);
   const counters = $derived(Object.entries(def.counters).filter(([, c]) => !c.module || st.modules.includes(c.module)));
   let options = $state.raw<Record<string, Row[]>>({});
 
   $effect(() => {
-    const seatInput = { id: seat.id, name: seat.name, ...seat.fields, ...seat.counters };
+    const input = seatInput(seat);
     const modules = st.modules;
     void (async () => {
       const out: Record<string, Row[]> = {};
       for (const [k, f] of Object.entries(def.fields)) {
-        if (f.type === "ref" && f.catalog) out[`field:${k}`] = await selectRows(bundle, f.catalog, modules, f.filter, seatInput);
+        if (f.type === "ref" && f.catalog) out[`field:${k}`] = await selectRows(bundle, f.catalog, modules, f.filter, input);
       }
-      for (const [k, z] of Object.entries(def.zones)) out[`zone:${k}`] = await selectRows(bundle, z.catalog, modules, z.filter, seatInput);
+      for (const [k, z] of Object.entries(def.zones)) out[`zone:${k}`] = await selectRows(bundle, z.catalog, modules, z.filter, input);
       options = out;
     })();
   });
@@ -42,7 +45,8 @@
           {name}
           def={f}
           value={seat.fields[name] ?? null}
-          options={options[`field:${name}`] ?? []}
+          choices={f.catalog ? refChoices(bundle, tr, st, name, f, options[`field:${name}`] ?? [], seat.fields[name]) : []}
+          locked={!canAssign(session, seat)}
           onset={(value) => submit({ t: "field.set", seat: seat.id, field: name, value })}
         />
       {/each}
